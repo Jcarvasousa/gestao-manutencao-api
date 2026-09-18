@@ -28,7 +28,7 @@ public class SolicitacaoCompraController {
         SolicitacaoCompra solicitacaoCompra = solicitacaoCompraService.criar(
                 requestDTO.pecaId(),
                 requestDTO.manutencaoId(),
-                requestDTO.quantidade(),
+                requestDTO.quantidadeNecessaria(),
                 requestDTO.fornecedor(),
                 requestDTO.valorOrcamento()
         );

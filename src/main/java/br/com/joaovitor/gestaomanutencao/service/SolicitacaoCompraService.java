@@ -39,19 +39,19 @@ public class SolicitacaoCompraService {
     public SolicitacaoCompra criar(
             Long pecaId,
             Long manutencaoId,
-            Integer quantidade,
+            Integer quantidadeNecessaria,
             String fornecedor,
             BigDecimal valorOrcamento
     ) {
         Peca peca = pecaRepository.findById(pecaId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Peça não encontrada para o id: " + pecaId));
 
-        if (peca.getQuantidadeAtual() >= quantidade) {
+        if (peca.getQuantidadeAtual() >= quantidadeNecessaria) {
             throw new CompraDesnecessariaException(
                     "Compra desnecessária. Quantidade disponível: "
                             + peca.getQuantidadeAtual()
                             + ", quantidade solicitada: "
-                            + quantidade
+                            + quantidadeNecessaria
             );
         }
 
@@ -63,7 +63,7 @@ public class SolicitacaoCompraService {
         SolicitacaoCompra solicitacaoCompra = new SolicitacaoCompra();
         solicitacaoCompra.setPeca(peca);
         solicitacaoCompra.setManutencao(manutencao);
-        solicitacaoCompra.setQuantidade(quantidade);
+        solicitacaoCompra.setQuantidadeNecessaria(quantidadeNecessaria);
         solicitacaoCompra.setFornecedor(fornecedor);
         solicitacaoCompra.setValorOrcamento(valorOrcamento);
 
@@ -79,7 +79,7 @@ public class SolicitacaoCompraService {
 
         movimentacaoEstoqueService.registrarEntrada(
                 solicitacaoCompra.getPeca().getId(),
-                solicitacaoCompra.getQuantidade(),
+                solicitacaoCompra.getQuantidadeNecessaria(),
                 "Entrada referente à solicitação de compra #" + solicitacaoCompraId
         );
 

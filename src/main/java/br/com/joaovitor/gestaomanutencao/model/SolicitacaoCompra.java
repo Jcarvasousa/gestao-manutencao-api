@@ -38,12 +38,12 @@ public class SolicitacaoCompra {
     private Peca peca;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "manutencao_id", nullable = true)
+    @JoinColumn(name = "manutencao_id")
     private Manutencao manutencao;
 
     @Min(1)
     @Column(nullable = false)
-    private Integer quantidade;
+    private Integer quantidadeNecessaria;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
