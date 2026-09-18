@@ -4,17 +4,10 @@ import br.com.joaovitor.gestaomanutencao.dto.PecaRequestDTO;
 import br.com.joaovitor.gestaomanutencao.dto.PecaResponseDTO;
 import br.com.joaovitor.gestaomanutencao.model.Peca;
 import br.com.joaovitor.gestaomanutencao.repository.PecaRepository;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/pecas")
@@ -38,29 +31,36 @@ public class PecaController {
         peca.setCustoUnitario(requestDTO.custoUnitario());
 
         Peca salva = pecaRepository.save(peca);
-
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(PecaResponseDTO.fromEntity(salva));
+        return ResponseEntity.status(201).body(PecaResponseDTO.fromEntity(salva));
     }
 
     @GetMapping
     public ResponseEntity<List<PecaResponseDTO>> listarTodas() {
-        List<PecaResponseDTO> pecas = pecaRepository.findAll()
+        List<PecaResponseDTO> lista = pecaRepository.findAll()
                 .stream()
                 .map(PecaResponseDTO::fromEntity)
                 .toList();
 
-        return ResponseEntity.ok(pecas);
+        return ResponseEntity.ok(lista);
+    }
+
+    @GetMapping("/abaixo-do-minimo")
+    public ResponseEntity<List<PecaResponseDTO>> listarAbaixoDoMinimo() {
+        List<PecaResponseDTO> lista = pecaRepository.findAll()
+                .stream()
+                .filter(peca -> peca.getEstoqueMinimo() != null)
+                .filter(peca -> peca.getQuantidadeAtual() < peca.getEstoqueMinimo())
+                .map(PecaResponseDTO::fromEntity)
+                .toList();
+
+        return ResponseEntity.ok(lista);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<PecaResponseDTO> buscarPorId(@PathVariable Long id) {
-        Optional<Peca> pecaOpt = pecaRepository.findById(id);
-
-        if (pecaOpt.isPresent()) {
-            return ResponseEntity.ok(PecaResponseDTO.fromEntity(pecaOpt.get()));
-        }
-
-        return ResponseEntity.notFound().build();
+        return pecaRepository.findById(id)
+                .map(PecaResponseDTO::fromEntity)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 }

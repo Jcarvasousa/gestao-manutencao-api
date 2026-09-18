@@ -12,9 +12,13 @@ public record PecaResponseDTO(
         String localizacaoFisica,
         Integer quantidadeAtual,
         Integer estoqueMinimo,
-        BigDecimal custoUnitario
+        BigDecimal custoUnitario,
+        Boolean abaixoDoMinimo
 ) {
     public static PecaResponseDTO fromEntity(Peca entity) {
+        boolean abaixoDoMinimo = entity.getEstoqueMinimo() != null
+                && entity.getQuantidadeAtual() < entity.getEstoqueMinimo();
+
         return new PecaResponseDTO(
                 entity.getId(),
                 entity.getCodigo(),
@@ -23,7 +27,8 @@ public record PecaResponseDTO(
                 entity.getLocalizacaoFisica(),
                 entity.getQuantidadeAtual(),
                 entity.getEstoqueMinimo(),
-                entity.getCustoUnitario()
+                entity.getCustoUnitario(),
+                abaixoDoMinimo
         );
     }
 }
