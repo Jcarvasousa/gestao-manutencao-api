@@ -35,6 +35,7 @@ public class ManutencaoController {
         Manutencao manutencao = new Manutencao();
         manutencao.setMaquina(maquina);
         manutencao.setProblemaDescricao(requestDTO.problemaDescricao());
+        manutencao.setTipo(requestDTO.tipo());
         manutencao.setTecnicoResponsavel(requestDTO.tecnicoResponsavel());
 
         Manutencao salva = manutencaoRepository.save(manutencao);

@@ -40,6 +40,12 @@ public class Manutencao {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    private TipoManutencao tipo;
+
+    private String descricaoServico;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private StatusManutencao status = StatusManutencao.ABERTA;
 
     private String tecnicoResponsavel;

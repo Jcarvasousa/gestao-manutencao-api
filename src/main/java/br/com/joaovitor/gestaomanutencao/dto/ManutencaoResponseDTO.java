@@ -2,6 +2,7 @@ package br.com.joaovitor.gestaomanutencao.dto;
 
 import br.com.joaovitor.gestaomanutencao.model.Manutencao;
 import br.com.joaovitor.gestaomanutencao.model.StatusManutencao;
+import br.com.joaovitor.gestaomanutencao.model.TipoManutencao;
 
 import java.time.LocalDateTime;
 
@@ -10,6 +11,8 @@ public record ManutencaoResponseDTO(
         Long maquinaId,
         String maquinaCodigo,
         String problemaDescricao,
+        TipoManutencao tipo,
+        String descricaoServico,
         StatusManutencao status,
         String tecnicoResponsavel,
         LocalDateTime dataAbertura,
@@ -22,6 +25,8 @@ public record ManutencaoResponseDTO(
                 entity.getMaquina().getId(),
                 entity.getMaquina().getCodigo(),
                 entity.getProblemaDescricao(),
+                entity.getTipo(),
+                entity.getDescricaoServico(),
                 entity.getStatus(),
                 entity.getTecnicoResponsavel(),
                 entity.getDataAbertura(),
