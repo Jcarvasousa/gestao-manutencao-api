@@ -26,4 +26,38 @@ public interface ManutencaoRepository extends JpaRepository<Manutencao, Long> {
             @Param("mes") Integer mes,
             @Param("ano") Integer ano
     );
+
+    @Query("""
+            SELECT COALESCE(SUM(m.custoMaoDeObra), 0)
+            FROM Manutencao m
+            WHERE m.status = br.com.joaovitor.gestaomanutencao.model.StatusManutencao.CONCLUIDA
+              AND m.maquina.id = :maquinaId
+              AND MONTH(m.dataConclusao) = :mes
+              AND YEAR(m.dataConclusao) = :ano
+            """)
+    BigDecimal calcularCustoMaoDeObraPorMaquinaMesEAno(
+            @Param("maquinaId") Long maquinaId,
+            @Param("mes") Integer mes,
+            @Param("ano") Integer ano
+    );
+
+    @Query("""
+            SELECT COALESCE(SUM(m.custoMaoDeObra), 0)
+            FROM Manutencao m
+            WHERE m.status = br.com.joaovitor.gestaomanutencao.model.StatusManutencao.CONCLUIDA
+              AND m.maquina.id = :maquinaId
+              AND YEAR(m.dataConclusao) = :ano
+            """)
+    BigDecimal calcularCustoMaoDeObraPorMaquinaEAno(
+            @Param("maquinaId") Long maquinaId,
+            @Param("ano") Integer ano
+    );
+
+    @Query("""
+            SELECT COALESCE(SUM(m.custoMaoDeObra), 0)
+            FROM Manutencao m
+            WHERE m.status = br.com.joaovitor.gestaomanutencao.model.StatusManutencao.CONCLUIDA
+              AND m.maquina.id = :maquinaId
+            """)
+    BigDecimal calcularCustoMaoDeObraPorMaquinaTotal(@Param("maquinaId") Long maquinaId);
 }
