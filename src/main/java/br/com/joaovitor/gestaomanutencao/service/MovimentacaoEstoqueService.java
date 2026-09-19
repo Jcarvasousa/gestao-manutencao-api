@@ -14,6 +14,8 @@ import br.com.joaovitor.gestaomanutencao.repository.PecaRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+
 @Service
 public class MovimentacaoEstoqueService {
 
@@ -56,6 +58,8 @@ public class MovimentacaoEstoqueService {
             );
         }
 
+        BigDecimal custoNoMomento = peca.getCustoUnitario();
+
         peca.setQuantidadeAtual(peca.getQuantidadeAtual() - quantidade);
         pecaRepository.save(peca);
 
@@ -63,6 +67,7 @@ public class MovimentacaoEstoqueService {
         movimentacao.setPeca(peca);
         movimentacao.setTipo(TipoMovimentacao.SAIDA);
         movimentacao.setQuantidade(quantidade);
+        movimentacao.setCustoUnitarioMomento(custoNoMomento);
         movimentacao.setManutencao(manutencao);
         movimentacao.setObservacao(observacao);
 

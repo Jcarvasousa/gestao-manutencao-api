@@ -18,6 +18,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -43,6 +44,8 @@ public class MovimentacaoEstoque {
     @Min(1)
     @Column(nullable = false)
     private Integer quantidade;
+
+    private BigDecimal custoUnitarioMomento;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "manutencao_id", nullable = true)
