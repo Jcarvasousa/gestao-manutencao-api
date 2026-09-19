@@ -2,10 +2,12 @@ package br.com.joaovitor.gestaomanutencao.controller;
 
 import br.com.joaovitor.gestaomanutencao.dto.RelatorioCustoMensalDTO;
 import br.com.joaovitor.gestaomanutencao.dto.RelatorioCustoMaquinaDTO;
+import br.com.joaovitor.gestaomanutencao.dto.RelatorioGastoRealizadoDTO;
 import br.com.joaovitor.gestaomanutencao.exception.RecursoNaoEncontradoException;
 import br.com.joaovitor.gestaomanutencao.repository.ManutencaoRepository;
 import br.com.joaovitor.gestaomanutencao.repository.MaquinaRepository;
 import br.com.joaovitor.gestaomanutencao.repository.MovimentacaoEstoqueRepository;
+import br.com.joaovitor.gestaomanutencao.repository.SolicitacaoCompraRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,15 +23,18 @@ public class RelatorioController {
     private final MovimentacaoEstoqueRepository movimentacaoEstoqueRepository;
     private final ManutencaoRepository manutencaoRepository;
     private final MaquinaRepository maquinaRepository;
+    private final SolicitacaoCompraRepository solicitacaoCompraRepository;
 
     public RelatorioController(
             MovimentacaoEstoqueRepository movimentacaoEstoqueRepository,
             ManutencaoRepository manutencaoRepository,
-            MaquinaRepository maquinaRepository
+            MaquinaRepository maquinaRepository,
+            SolicitacaoCompraRepository solicitacaoCompraRepository
     ) {
         this.movimentacaoEstoqueRepository = movimentacaoEstoqueRepository;
         this.manutencaoRepository = manutencaoRepository;
         this.maquinaRepository = maquinaRepository;
+        this.solicitacaoCompraRepository = solicitacaoCompraRepository;
     }
 
     @GetMapping("/custo-mensal")
@@ -54,6 +59,17 @@ public class RelatorioController {
         );
 
         return ResponseEntity.ok(relatorio);
+    }
+
+    @GetMapping("/gasto-realizado")
+    public ResponseEntity<RelatorioGastoRealizadoDTO> gastoRealizado(
+            @RequestParam Integer mes,
+            @RequestParam Integer ano
+    ) {
+        BigDecimal valorGasto = solicitacaoCompraRepository.calcularGastoRealizadoPorMesEAno(mes, ano);
+        if (valorGasto == null) valorGasto = BigDecimal.ZERO;
+
+        return ResponseEntity.ok(new RelatorioGastoRealizadoDTO(mes, ano, valorGasto));
     }
 
     @GetMapping("/custo-maquina/mensal")
