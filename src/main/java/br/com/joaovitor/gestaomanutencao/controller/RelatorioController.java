@@ -3,10 +3,12 @@ package br.com.joaovitor.gestaomanutencao.controller;
 import br.com.joaovitor.gestaomanutencao.dto.RelatorioCustoMensalDTO;
 import br.com.joaovitor.gestaomanutencao.dto.RelatorioCustoMaquinaDTO;
 import br.com.joaovitor.gestaomanutencao.dto.RelatorioGastoRealizadoDTO;
+import br.com.joaovitor.gestaomanutencao.dto.RelatorioOrcamentoMensalDTO;
 import br.com.joaovitor.gestaomanutencao.exception.RecursoNaoEncontradoException;
 import br.com.joaovitor.gestaomanutencao.repository.ManutencaoRepository;
 import br.com.joaovitor.gestaomanutencao.repository.MaquinaRepository;
 import br.com.joaovitor.gestaomanutencao.repository.MovimentacaoEstoqueRepository;
+import br.com.joaovitor.gestaomanutencao.repository.OrcamentoMensalRepository;
 import br.com.joaovitor.gestaomanutencao.repository.SolicitacaoCompraRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 @RestController
 @RequestMapping("/api/relatorios")
@@ -24,17 +27,20 @@ public class RelatorioController {
     private final ManutencaoRepository manutencaoRepository;
     private final MaquinaRepository maquinaRepository;
     private final SolicitacaoCompraRepository solicitacaoCompraRepository;
+    private final OrcamentoMensalRepository orcamentoMensalRepository;
 
     public RelatorioController(
             MovimentacaoEstoqueRepository movimentacaoEstoqueRepository,
             ManutencaoRepository manutencaoRepository,
             MaquinaRepository maquinaRepository,
-            SolicitacaoCompraRepository solicitacaoCompraRepository
+            SolicitacaoCompraRepository solicitacaoCompraRepository,
+            OrcamentoMensalRepository orcamentoMensalRepository
     ) {
         this.movimentacaoEstoqueRepository = movimentacaoEstoqueRepository;
         this.manutencaoRepository = manutencaoRepository;
         this.maquinaRepository = maquinaRepository;
         this.solicitacaoCompraRepository = solicitacaoCompraRepository;
+        this.orcamentoMensalRepository = orcamentoMensalRepository;
     }
 
     @GetMapping("/custo-mensal")
@@ -59,6 +65,38 @@ public class RelatorioController {
         );
 
         return ResponseEntity.ok(relatorio);
+    }
+
+    @GetMapping("/orcamento-mensal")
+    public ResponseEntity<RelatorioOrcamentoMensalDTO> orcamentoMensal(
+            @RequestParam Integer mes,
+            @RequestParam Integer ano
+    ) {
+        var orcamentoMensal = orcamentoMensalRepository.findByMesAndAno(mes, ano)
+                .orElseThrow(() -> new RecursoNaoEncontradoException(
+                        "Não há orçamento planejado cadastrado para " + mes + "/" + ano + "."
+                ));
+
+        BigDecimal valorPlanejado = orcamentoMensal.getValorPlanejado();
+        BigDecimal valorRealizado = solicitacaoCompraRepository
+                .calcularGastoRealizadoPorMesEAno(mes, ano);
+        if (valorRealizado == null) valorRealizado = BigDecimal.ZERO;
+
+        BigDecimal saldoDisponivel = valorPlanejado.subtract(valorRealizado);
+        BigDecimal percentualUtilizado = valorPlanejado.compareTo(BigDecimal.ZERO) == 0
+                ? BigDecimal.ZERO
+                : valorRealizado
+                .divide(valorPlanejado, 2, RoundingMode.HALF_UP)
+                .multiply(BigDecimal.valueOf(100));
+
+        return ResponseEntity.ok(new RelatorioOrcamentoMensalDTO(
+                mes,
+                ano,
+                valorPlanejado,
+                valorRealizado,
+                saldoDisponivel,
+                percentualUtilizado
+        ));
     }
 
     @GetMapping("/gasto-realizado")
