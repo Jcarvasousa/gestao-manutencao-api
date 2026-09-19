@@ -2,6 +2,7 @@ package br.com.joaovitor.gestaomanutencao.controller;
 
 import br.com.joaovitor.gestaomanutencao.dto.OrcamentoMensalRequestDTO;
 import br.com.joaovitor.gestaomanutencao.dto.OrcamentoMensalResponseDTO;
+import br.com.joaovitor.gestaomanutencao.exception.RecursoNaoEncontradoException;
 import br.com.joaovitor.gestaomanutencao.model.OrcamentoMensal;
 import br.com.joaovitor.gestaomanutencao.repository.OrcamentoMensalRepository;
 import org.springframework.http.HttpStatus;
@@ -9,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -51,5 +53,22 @@ public class OrcamentoMensalController {
                 .map(OrcamentoMensalResponseDTO::fromEntity)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @PutMapping("/{mes}/{ano}")
+    public ResponseEntity<OrcamentoMensalResponseDTO> atualizar(
+            @PathVariable Integer mes,
+            @PathVariable Integer ano,
+            @RequestBody OrcamentoMensalRequestDTO requestDTO
+    ) {
+        OrcamentoMensal orcamentoMensal = orcamentoMensalRepository.findByMesAndAno(mes, ano)
+                .orElseThrow(() -> new RecursoNaoEncontradoException(
+                        "Orçamento mensal não encontrado para " + mes + "/" + ano + "."
+                ));
+
+        orcamentoMensal.setValorPlanejado(requestDTO.valorPlanejado());
+        OrcamentoMensal atualizado = orcamentoMensalRepository.save(orcamentoMensal);
+
+        return ResponseEntity.ok(OrcamentoMensalResponseDTO.fromEntity(atualizado));
     }
 }
