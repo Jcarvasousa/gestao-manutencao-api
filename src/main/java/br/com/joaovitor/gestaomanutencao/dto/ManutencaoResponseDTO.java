@@ -4,6 +4,7 @@ import br.com.joaovitor.gestaomanutencao.model.Manutencao;
 import br.com.joaovitor.gestaomanutencao.model.StatusManutencao;
 import br.com.joaovitor.gestaomanutencao.model.TipoManutencao;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public record ManutencaoResponseDTO(
@@ -13,6 +14,7 @@ public record ManutencaoResponseDTO(
         String problemaDescricao,
         TipoManutencao tipo,
         String descricaoServico,
+        BigDecimal custoMaoDeObra,
         StatusManutencao status,
         String tecnicoResponsavel,
         LocalDateTime dataAbertura,
@@ -27,6 +29,7 @@ public record ManutencaoResponseDTO(
                 entity.getProblemaDescricao(),
                 entity.getTipo(),
                 entity.getDescricaoServico(),
+                entity.getCustoMaoDeObra(),
                 entity.getStatus(),
                 entity.getTecnicoResponsavel(),
                 entity.getDataAbertura(),

@@ -17,6 +17,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -43,6 +44,8 @@ public class Manutencao {
     private TipoManutencao tipo;
 
     private String descricaoServico;
+
+    private BigDecimal custoMaoDeObra;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
