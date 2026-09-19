@@ -34,6 +34,8 @@ public class Peca {
 
     private String categoria;
 
+    private String unidadeMedida;
+
     private String localizacaoFisica;
 
     @Min(0)

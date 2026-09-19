@@ -25,6 +25,7 @@ public class PecaController {
         peca.setCodigo(requestDTO.codigo());
         peca.setNome(requestDTO.nome());
         peca.setCategoria(requestDTO.categoria());
+        peca.setUnidadeMedida(requestDTO.unidadeMedida());
         peca.setLocalizacaoFisica(requestDTO.localizacaoFisica());
         peca.setQuantidadeAtual(requestDTO.quantidadeAtual());
         peca.setEstoqueMinimo(requestDTO.estoqueMinimo());
