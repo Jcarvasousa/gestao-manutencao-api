@@ -11,12 +11,19 @@ import br.com.joaovitor.gestaomanutencao.repository.MaquinaRepository;
 import br.com.joaovitor.gestaomanutencao.repository.MovimentacaoEstoqueRepository;
 import br.com.joaovitor.gestaomanutencao.repository.OrcamentoMensalRepository;
 import br.com.joaovitor.gestaomanutencao.repository.SolicitacaoCompraRepository;
+import org.openpdf.text.Document;
+import org.openpdf.text.DocumentException;
+import org.openpdf.text.Paragraph;
+import org.openpdf.text.pdf.PdfWriter;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
@@ -67,6 +74,41 @@ public class RelatorioController {
         );
 
         return ResponseEntity.ok(relatorio);
+    }
+
+    @GetMapping("/custo-mensal/pdf")
+    public ResponseEntity<byte[]> custoMensalPdf(
+            @RequestParam Integer mes,
+            @RequestParam Integer ano
+    ) throws DocumentException {
+        BigDecimal custoPecas = movimentacaoEstoqueRepository.calcularCustoPecasPorMesEAno(mes, ano);
+        if (custoPecas == null) custoPecas = BigDecimal.ZERO;
+
+        BigDecimal custoMaoDeObra = manutencaoRepository.calcularCustoMaoDeObraPorMesEAno(mes, ano);
+        if (custoMaoDeObra == null) custoMaoDeObra = BigDecimal.ZERO;
+
+        BigDecimal custoTotal = custoPecas.add(custoMaoDeObra);
+
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        Document document = new Document();
+        PdfWriter.getInstance(document, outputStream);
+        document.open();
+        document.add(new Paragraph("Relatório de Custo Mensal"));
+        document.add(new Paragraph("Mês: " + mes));
+        document.add(new Paragraph("Ano: " + ano));
+        document.add(new Paragraph("Custo de Peças: " + custoPecas));
+        document.add(new Paragraph("Custo de Mão de Obra: " + custoMaoDeObra));
+        document.add(new Paragraph("Custo Total: " + custoTotal));
+        document.close();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.set(HttpHeaders.CONTENT_DISPOSITION,
+                "attachment; filename=relatorio-custo-mensal.pdf");
+
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(outputStream.toByteArray());
     }
 
     @GetMapping("/orcamento-mensal")
