@@ -143,6 +143,51 @@ public class RelatorioController {
         ));
     }
 
+    @GetMapping("/orcamento-mensal/pdf")
+    public ResponseEntity<byte[]> orcamentoMensalPdf(
+            @RequestParam Integer mes,
+            @RequestParam Integer ano
+    ) throws DocumentException {
+        var orcamentoMensal = orcamentoMensalRepository.findByMesAndAno(mes, ano)
+                .orElseThrow(() -> new RecursoNaoEncontradoException(
+                        "Não há orçamento planejado cadastrado para " + mes + "/" + ano + "."
+                ));
+
+        BigDecimal valorPlanejado = orcamentoMensal.getValorPlanejado();
+        BigDecimal valorRealizado = solicitacaoCompraRepository
+                .calcularGastoRealizadoPorMesEAno(mes, ano);
+        if (valorRealizado == null) valorRealizado = BigDecimal.ZERO;
+
+        BigDecimal saldoDisponivel = valorPlanejado.subtract(valorRealizado);
+        BigDecimal percentualUtilizado = valorPlanejado.compareTo(BigDecimal.ZERO) == 0
+                ? BigDecimal.ZERO
+                : valorRealizado
+                .divide(valorPlanejado, 2, RoundingMode.HALF_UP)
+                .multiply(BigDecimal.valueOf(100));
+
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        Document document = new Document();
+        PdfWriter.getInstance(document, outputStream);
+        document.open();
+        document.add(new Paragraph("Relatório de Orçamento Mensal"));
+        document.add(new Paragraph("Mês: " + mes));
+        document.add(new Paragraph("Ano: " + ano));
+        document.add(new Paragraph("Valor Planejado: " + valorPlanejado));
+        document.add(new Paragraph("Valor Realizado: " + valorRealizado));
+        document.add(new Paragraph("Saldo Disponível: " + saldoDisponivel));
+        document.add(new Paragraph("Percentual Utilizado: " + percentualUtilizado));
+        document.close();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.set(HttpHeaders.CONTENT_DISPOSITION,
+                "attachment; filename=relatorio-orcamento-mensal.pdf");
+
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(outputStream.toByteArray());
+    }
+
     @GetMapping("/orcamento-anual")
     public ResponseEntity<RelatorioOrcamentoAnualDTO> orcamentoAnual(
             @RequestParam Integer ano
@@ -172,6 +217,48 @@ public class RelatorioController {
         ));
     }
 
+    @GetMapping("/orcamento-anual/pdf")
+    public ResponseEntity<byte[]> orcamentoAnualPdf(
+            @RequestParam Integer ano
+    ) throws DocumentException {
+        List<br.com.joaovitor.gestaomanutencao.model.OrcamentoMensal> orcamentos =
+                orcamentoMensalRepository.findByAno(ano);
+        BigDecimal valorPlanejadoTotal = orcamentos.stream()
+                .map(orcamento -> orcamento.getValorPlanejado())
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal valorRealizadoTotal = solicitacaoCompraRepository.calcularGastoRealizadoPorAno(ano);
+        if (valorRealizadoTotal == null) valorRealizadoTotal = BigDecimal.ZERO;
+
+        BigDecimal saldoDisponivel = valorPlanejadoTotal.subtract(valorRealizadoTotal);
+        BigDecimal percentualUtilizado = valorPlanejadoTotal.compareTo(BigDecimal.ZERO) == 0
+                ? BigDecimal.ZERO
+                : valorRealizadoTotal
+                .divide(valorPlanejadoTotal, 2, RoundingMode.HALF_UP)
+                .multiply(BigDecimal.valueOf(100));
+
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        Document document = new Document();
+        PdfWriter.getInstance(document, outputStream);
+        document.open();
+        document.add(new Paragraph("Relatório de Orçamento Anual"));
+        document.add(new Paragraph("Ano: " + ano));
+        document.add(new Paragraph("Valor Planejado: " + valorPlanejadoTotal));
+        document.add(new Paragraph("Valor Realizado: " + valorRealizadoTotal));
+        document.add(new Paragraph("Saldo Disponível: " + saldoDisponivel));
+        document.add(new Paragraph("Percentual Utilizado: " + percentualUtilizado));
+        document.close();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.set(HttpHeaders.CONTENT_DISPOSITION,
+                "attachment; filename=relatorio-orcamento-anual.pdf");
+
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(outputStream.toByteArray());
+    }
+
     @GetMapping("/gasto-realizado")
     public ResponseEntity<RelatorioGastoRealizadoDTO> gastoRealizado(
             @RequestParam Integer mes,
@@ -181,6 +268,34 @@ public class RelatorioController {
         if (valorGasto == null) valorGasto = BigDecimal.ZERO;
 
         return ResponseEntity.ok(new RelatorioGastoRealizadoDTO(mes, ano, valorGasto));
+    }
+
+    @GetMapping("/gasto-realizado/pdf")
+    public ResponseEntity<byte[]> gastoRealizadoPdf(
+            @RequestParam Integer mes,
+            @RequestParam Integer ano
+    ) throws DocumentException {
+        BigDecimal valorGasto = solicitacaoCompraRepository.calcularGastoRealizadoPorMesEAno(mes, ano);
+        if (valorGasto == null) valorGasto = BigDecimal.ZERO;
+
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        Document document = new Document();
+        PdfWriter.getInstance(document, outputStream);
+        document.open();
+        document.add(new Paragraph("Relatório de Gasto Realizado"));
+        document.add(new Paragraph("Mês: " + mes));
+        document.add(new Paragraph("Ano: " + ano));
+        document.add(new Paragraph("Valor Gasto: " + valorGasto));
+        document.close();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.set(HttpHeaders.CONTENT_DISPOSITION,
+                "attachment; filename=relatorio-gasto-realizado.pdf");
+
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(outputStream.toByteArray());
     }
 
     @GetMapping("/custo-maquina/mensal")
@@ -213,9 +328,51 @@ public class RelatorioController {
         ));
     }
 
+    @GetMapping("/custo-maquina/mensal/pdf")
+    public ResponseEntity<byte[]> custoMaquinaMensalPdf(
+            @RequestParam Long maquinaId,
+                @RequestParam Integer mes,
+                @RequestParam Integer ano
+    ) throws DocumentException {
+        var maquina = maquinaRepository.findById(maquinaId)
+                    .orElseThrow(() -> new RecursoNaoEncontradoException(
+                            "Máquina com ID " + maquinaId + " não encontrada."
+                    ));
+
+        BigDecimal custoPecas = movimentacaoEstoqueRepository
+                    .calcularCustoPecasPorMaquinaMesEAno(maquinaId, mes, ano);
+        if (custoPecas == null) custoPecas = BigDecimal.ZERO;
+
+        BigDecimal custoMaoDeObra = manutencaoRepository
+                    .calcularCustoMaoDeObraPorMaquinaMesEAno(maquinaId, mes, ano);
+        if (custoMaoDeObra == null) custoMaoDeObra = BigDecimal.ZERO;
+
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        Document document = new Document();
+        PdfWriter.getInstance(document, outputStream);
+        document.open();
+        document.add(new Paragraph("Relatório de Custo por Máquina - Mensal"));
+        document.add(new Paragraph("Código da Máquina: " + maquina.getCodigo()));
+        document.add(new Paragraph("Mês: " + mes));
+        document.add(new Paragraph("Ano: " + ano));
+        document.add(new Paragraph("Custo de Peças: " + custoPecas));
+        document.add(new Paragraph("Custo de Mão de Obra: " + custoMaoDeObra));
+        document.add(new Paragraph("Custo Total: " + custoPecas.add(custoMaoDeObra)));
+        document.close();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.set(HttpHeaders.CONTENT_DISPOSITION,
+                    "attachment; filename=relatorio-custo-maquina-mensal.pdf");
+
+        return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(outputStream.toByteArray());
+    }
+
     @GetMapping("/custo-maquina/anual")
     public ResponseEntity<RelatorioCustoMaquinaDTO> custoMaquinaAnual(
-            @RequestParam Long maquinaId,
+                @RequestParam Long maquinaId,
             @RequestParam Integer ano
     ) {
         var maquina = maquinaRepository.findById(maquinaId)
@@ -242,9 +399,49 @@ public class RelatorioController {
         ));
     }
 
+    @GetMapping("/custo-maquina/anual/pdf")
+    public ResponseEntity<byte[]> custoMaquinaAnualPdf(
+                @RequestParam Long maquinaId,
+                @RequestParam Integer ano
+    ) throws DocumentException {
+        var maquina = maquinaRepository.findById(maquinaId)
+                    .orElseThrow(() -> new RecursoNaoEncontradoException(
+                            "Máquina com ID " + maquinaId + " não encontrada."
+                    ));
+
+        BigDecimal custoPecas = movimentacaoEstoqueRepository
+                    .calcularCustoPecasPorMaquinaEAno(maquinaId, ano);
+        if (custoPecas == null) custoPecas = BigDecimal.ZERO;
+
+        BigDecimal custoMaoDeObra = manutencaoRepository
+                    .calcularCustoMaoDeObraPorMaquinaEAno(maquinaId, ano);
+        if (custoMaoDeObra == null) custoMaoDeObra = BigDecimal.ZERO;
+
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        Document document = new Document();
+        PdfWriter.getInstance(document, outputStream);
+        document.open();
+        document.add(new Paragraph("Relatório de Custo por Máquina - Anual"));
+        document.add(new Paragraph("Código da Máquina: " + maquina.getCodigo()));
+        document.add(new Paragraph("Ano: " + ano));
+        document.add(new Paragraph("Custo de Peças: " + custoPecas));
+        document.add(new Paragraph("Custo de Mão de Obra: " + custoMaoDeObra));
+        document.add(new Paragraph("Custo Total: " + custoPecas.add(custoMaoDeObra)));
+        document.close();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.set(HttpHeaders.CONTENT_DISPOSITION,
+                    "attachment; filename=relatorio-custo-maquina-anual.pdf");
+
+        return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(outputStream.toByteArray());
+    }
+
     @GetMapping("/custo-maquina/total")
     public ResponseEntity<RelatorioCustoMaquinaDTO> custoMaquinaTotal(
-            @RequestParam Long maquinaId
+                @RequestParam Long maquinaId
     ) {
         var maquina = maquinaRepository.findById(maquinaId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException(
@@ -268,5 +465,43 @@ public class RelatorioController {
                 custoMaoDeObra,
                 custoPecas.add(custoMaoDeObra)
         ));
+    }
+
+    @GetMapping("/custo-maquina/total/pdf")
+    public ResponseEntity<byte[]> custoMaquinaTotalPdf(
+                @RequestParam Long maquinaId
+    ) throws DocumentException {
+        var maquina = maquinaRepository.findById(maquinaId)
+                    .orElseThrow(() -> new RecursoNaoEncontradoException(
+                            "Máquina com ID " + maquinaId + " não encontrada."
+                    ));
+
+        BigDecimal custoPecas = movimentacaoEstoqueRepository
+                    .calcularCustoPecasPorMaquinaTotal(maquinaId);
+        if (custoPecas == null) custoPecas = BigDecimal.ZERO;
+
+        BigDecimal custoMaoDeObra = manutencaoRepository
+                    .calcularCustoMaoDeObraPorMaquinaTotal(maquinaId);
+        if (custoMaoDeObra == null) custoMaoDeObra = BigDecimal.ZERO;
+
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        Document document = new Document();
+        PdfWriter.getInstance(document, outputStream);
+        document.open();
+        document.add(new Paragraph("Relatório de Custo por Máquina - Total"));
+        document.add(new Paragraph("Código da Máquina: " + maquina.getCodigo()));
+        document.add(new Paragraph("Custo de Peças: " + custoPecas));
+        document.add(new Paragraph("Custo de Mão de Obra: " + custoMaoDeObra));
+        document.add(new Paragraph("Custo Total: " + custoPecas.add(custoMaoDeObra)));
+        document.close();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.set(HttpHeaders.CONTENT_DISPOSITION,
+                    "attachment; filename=relatorio-custo-maquina-total.pdf");
+
+        return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(outputStream.toByteArray());
     }
 }
