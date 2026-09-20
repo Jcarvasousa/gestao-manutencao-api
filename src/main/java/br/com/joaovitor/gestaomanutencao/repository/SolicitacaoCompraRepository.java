@@ -20,4 +20,12 @@ public interface SolicitacaoCompraRepository extends JpaRepository<SolicitacaoCo
             @Param("mes") Integer mes,
             @Param("ano") Integer ano
     );
+
+    @Query("""
+            SELECT COALESCE(SUM(s.valorOrcamento), 0)
+            FROM SolicitacaoCompra s
+            WHERE s.status = br.com.joaovitor.gestaomanutencao.model.StatusSolicitacaoCompra.RECEBIDA
+              AND YEAR(s.dataRecebimento) = :ano
+            """)
+    BigDecimal calcularGastoRealizadoPorAno(@Param("ano") Integer ano);
 }

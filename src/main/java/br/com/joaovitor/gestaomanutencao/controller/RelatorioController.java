@@ -3,6 +3,7 @@ package br.com.joaovitor.gestaomanutencao.controller;
 import br.com.joaovitor.gestaomanutencao.dto.RelatorioCustoMensalDTO;
 import br.com.joaovitor.gestaomanutencao.dto.RelatorioCustoMaquinaDTO;
 import br.com.joaovitor.gestaomanutencao.dto.RelatorioGastoRealizadoDTO;
+import br.com.joaovitor.gestaomanutencao.dto.RelatorioOrcamentoAnualDTO;
 import br.com.joaovitor.gestaomanutencao.dto.RelatorioOrcamentoMensalDTO;
 import br.com.joaovitor.gestaomanutencao.exception.RecursoNaoEncontradoException;
 import br.com.joaovitor.gestaomanutencao.repository.ManutencaoRepository;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/relatorios")
@@ -94,6 +96,35 @@ public class RelatorioController {
                 ano,
                 valorPlanejado,
                 valorRealizado,
+                saldoDisponivel,
+                percentualUtilizado
+        ));
+    }
+
+    @GetMapping("/orcamento-anual")
+    public ResponseEntity<RelatorioOrcamentoAnualDTO> orcamentoAnual(
+            @RequestParam Integer ano
+    ) {
+        List<br.com.joaovitor.gestaomanutencao.model.OrcamentoMensal> orcamentos =
+                orcamentoMensalRepository.findByAno(ano);
+        BigDecimal valorPlanejadoTotal = orcamentos.stream()
+                .map(orcamento -> orcamento.getValorPlanejado())
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal valorRealizadoTotal = solicitacaoCompraRepository.calcularGastoRealizadoPorAno(ano);
+        if (valorRealizadoTotal == null) valorRealizadoTotal = BigDecimal.ZERO;
+
+        BigDecimal saldoDisponivel = valorPlanejadoTotal.subtract(valorRealizadoTotal);
+        BigDecimal percentualUtilizado = valorPlanejadoTotal.compareTo(BigDecimal.ZERO) == 0
+                ? BigDecimal.ZERO
+                : valorRealizadoTotal
+                .divide(valorPlanejadoTotal, 2, RoundingMode.HALF_UP)
+                .multiply(BigDecimal.valueOf(100));
+
+        return ResponseEntity.ok(new RelatorioOrcamentoAnualDTO(
+                ano,
+                valorPlanejadoTotal,
+                valorRealizadoTotal,
                 saldoDisponivel,
                 percentualUtilizado
         ));
