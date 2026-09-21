@@ -7,6 +7,7 @@ import br.com.joaovitor.gestaomanutencao.model.Manutencao;
 import br.com.joaovitor.gestaomanutencao.model.Maquina;
 import br.com.joaovitor.gestaomanutencao.repository.ManutencaoRepository;
 import br.com.joaovitor.gestaomanutencao.repository.MaquinaRepository;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -26,7 +27,7 @@ public class ManutencaoController {
     }
 
     @PostMapping
-    public ResponseEntity<ManutencaoResponseDTO> criar(@RequestBody ManutencaoRequestDTO requestDTO) {
+    public ResponseEntity<ManutencaoResponseDTO> criar(@Valid @RequestBody ManutencaoRequestDTO requestDTO) {
         Maquina maquina = maquinaRepository.findById(requestDTO.maquinaId())
                 .orElseThrow(() -> new RecursoNaoEncontradoException(
                         "Máquina com ID " + requestDTO.maquinaId() + " não encontrada."

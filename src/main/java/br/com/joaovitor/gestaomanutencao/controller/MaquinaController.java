@@ -4,6 +4,7 @@ import br.com.joaovitor.gestaomanutencao.dto.MaquinaRequestDTO;
 import br.com.joaovitor.gestaomanutencao.dto.MaquinaResponseDTO;
 import br.com.joaovitor.gestaomanutencao.model.Maquina;
 import br.com.joaovitor.gestaomanutencao.repository.MaquinaRepository;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,7 +28,7 @@ public class MaquinaController {
     }
 
     @PostMapping
-    public ResponseEntity<MaquinaResponseDTO> criar(@RequestBody MaquinaRequestDTO requestDTO) {
+    public ResponseEntity<MaquinaResponseDTO> criar(@Valid @RequestBody MaquinaRequestDTO requestDTO) {
         Maquina maquina = new Maquina();
         maquina.setCodigo(requestDTO.codigo());
         maquina.setDescricao(requestDTO.descricao());

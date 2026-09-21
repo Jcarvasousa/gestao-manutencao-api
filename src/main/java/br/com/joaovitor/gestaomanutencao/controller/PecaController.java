@@ -4,6 +4,7 @@ import br.com.joaovitor.gestaomanutencao.dto.PecaRequestDTO;
 import br.com.joaovitor.gestaomanutencao.dto.PecaResponseDTO;
 import br.com.joaovitor.gestaomanutencao.model.Peca;
 import br.com.joaovitor.gestaomanutencao.repository.PecaRepository;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,7 +21,7 @@ public class PecaController {
     }
 
     @PostMapping
-    public ResponseEntity<PecaResponseDTO> criar(@RequestBody PecaRequestDTO requestDTO) {
+    public ResponseEntity<PecaResponseDTO> criar(@Valid @RequestBody PecaRequestDTO requestDTO) {
         Peca peca = new Peca();
         peca.setCodigo(requestDTO.codigo());
         peca.setNome(requestDTO.nome());

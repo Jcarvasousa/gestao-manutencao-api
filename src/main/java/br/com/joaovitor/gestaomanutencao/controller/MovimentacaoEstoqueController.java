@@ -5,6 +5,7 @@ import br.com.joaovitor.gestaomanutencao.dto.MovimentacaoEstoqueResponseDTO;
 import br.com.joaovitor.gestaomanutencao.dto.MovimentacaoSaidaRequestDTO;
 import br.com.joaovitor.gestaomanutencao.model.MovimentacaoEstoque;
 import br.com.joaovitor.gestaomanutencao.service.MovimentacaoEstoqueService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,7 +21,7 @@ public class MovimentacaoEstoqueController {
     }
 
     @PostMapping("/saida")
-    public ResponseEntity<MovimentacaoEstoqueResponseDTO> registrarSaida(@RequestBody MovimentacaoSaidaRequestDTO requestDTO) {
+    public ResponseEntity<MovimentacaoEstoqueResponseDTO> registrarSaida(@Valid @RequestBody MovimentacaoSaidaRequestDTO requestDTO) {
         MovimentacaoEstoque movimentacao = movimentacaoEstoqueService.registrarSaida(
                 requestDTO.pecaId(),
                 requestDTO.manutencaoId(),
@@ -33,7 +34,7 @@ public class MovimentacaoEstoqueController {
     }
 
     @PostMapping("/entrada")
-    public ResponseEntity<MovimentacaoEstoqueResponseDTO> registrarEntrada(@RequestBody MovimentacaoEntradaRequestDTO requestDTO) {
+    public ResponseEntity<MovimentacaoEstoqueResponseDTO> registrarEntrada(@Valid @RequestBody MovimentacaoEntradaRequestDTO requestDTO) {
         MovimentacaoEstoque movimentacao = movimentacaoEstoqueService.registrarEntrada(
                 requestDTO.pecaId(),
                 requestDTO.quantidade(),

@@ -5,6 +5,7 @@ import br.com.joaovitor.gestaomanutencao.dto.OrcamentoMensalResponseDTO;
 import br.com.joaovitor.gestaomanutencao.exception.RecursoNaoEncontradoException;
 import br.com.joaovitor.gestaomanutencao.model.OrcamentoMensal;
 import br.com.joaovitor.gestaomanutencao.repository.OrcamentoMensalRepository;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,7 +28,7 @@ public class OrcamentoMensalController {
 
     @PostMapping
     public ResponseEntity<OrcamentoMensalResponseDTO> criar(
-            @RequestBody OrcamentoMensalRequestDTO requestDTO
+            @Valid @RequestBody OrcamentoMensalRequestDTO requestDTO
     ) {
         if (orcamentoMensalRepository.findByMesAndAno(requestDTO.mes(), requestDTO.ano()).isPresent()) {
             throw new RuntimeException("Já existe orçamento cadastrado para este mês/ano.");
@@ -59,7 +60,7 @@ public class OrcamentoMensalController {
     public ResponseEntity<OrcamentoMensalResponseDTO> atualizar(
             @PathVariable Integer mes,
             @PathVariable Integer ano,
-            @RequestBody OrcamentoMensalRequestDTO requestDTO
+            @Valid @RequestBody OrcamentoMensalRequestDTO requestDTO
     ) {
         OrcamentoMensal orcamentoMensal = orcamentoMensalRepository.findByMesAndAno(mes, ano)
                 .orElseThrow(() -> new RecursoNaoEncontradoException(

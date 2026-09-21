@@ -4,6 +4,7 @@ import br.com.joaovitor.gestaomanutencao.dto.SolicitacaoCompraRequestDTO;
 import br.com.joaovitor.gestaomanutencao.dto.SolicitacaoCompraResponseDTO;
 import br.com.joaovitor.gestaomanutencao.model.SolicitacaoCompra;
 import br.com.joaovitor.gestaomanutencao.service.SolicitacaoCompraService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -24,7 +25,7 @@ public class SolicitacaoCompraController {
     }
 
     @PostMapping
-    public ResponseEntity<SolicitacaoCompraResponseDTO> criar(@RequestBody SolicitacaoCompraRequestDTO requestDTO) {
+    public ResponseEntity<SolicitacaoCompraResponseDTO> criar(@Valid @RequestBody SolicitacaoCompraRequestDTO requestDTO) {
         SolicitacaoCompra solicitacaoCompra = solicitacaoCompraService.criar(
                 requestDTO.pecaId(),
                 requestDTO.manutencaoId(),
