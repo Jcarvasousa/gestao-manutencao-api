@@ -1,10 +1,13 @@
 package br.com.joaovitor.gestaomanutencao.controller;
 
 import br.com.joaovitor.gestaomanutencao.dto.ManutencaoRequestDTO;
+import br.com.joaovitor.gestaomanutencao.dto.ManutencaoConcluirRequestDTO;
 import br.com.joaovitor.gestaomanutencao.dto.ManutencaoResponseDTO;
+import br.com.joaovitor.gestaomanutencao.exception.ManutencaoNaoEstaAbertaException;
 import br.com.joaovitor.gestaomanutencao.exception.RecursoNaoEncontradoException;
 import br.com.joaovitor.gestaomanutencao.model.Manutencao;
 import br.com.joaovitor.gestaomanutencao.model.Maquina;
+import br.com.joaovitor.gestaomanutencao.model.StatusManutencao;
 import br.com.joaovitor.gestaomanutencao.repository.ManutencaoRepository;
 import br.com.joaovitor.gestaomanutencao.repository.MaquinaRepository;
 import jakarta.validation.Valid;
@@ -12,6 +15,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -61,5 +66,53 @@ public class ManutencaoController {
                 .map(ManutencaoResponseDTO::fromEntity)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @PatchMapping("/{id}/iniciar")
+    public ResponseEntity<ManutencaoResponseDTO> iniciar(@PathVariable Long id) {
+        Manutencao manutencao = manutencaoRepository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException(
+                        "Manutenção com ID " + id + " não encontrada."
+                ));
+
+        if (manutencao.getStatus() != StatusManutencao.ABERTA) {
+            throw new ManutencaoNaoEstaAbertaException(
+                    "Só é possível iniciar uma manutenção que está ABERTA."
+            );
+        }
+
+        manutencao.setStatus(StatusManutencao.EM_ANDAMENTO);
+        manutencao.setDataInicio(LocalDateTime.now());
+
+        Manutencao atualizada = manutencaoRepository.save(manutencao);
+        return ResponseEntity.ok(ManutencaoResponseDTO.fromEntity(atualizada));
+    }
+
+    @PatchMapping("/{id}/concluir")
+    public ResponseEntity<ManutencaoResponseDTO> concluir(
+            @PathVariable Long id,
+            @RequestBody ManutencaoConcluirRequestDTO requestDTO
+    ) {
+        Manutencao manutencao = manutencaoRepository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException(
+                        "Manutenção com ID " + id + " não encontrada."
+                ));
+
+        if (manutencao.getStatus() == StatusManutencao.CONCLUIDA
+                || manutencao.getStatus() == StatusManutencao.CANCELADA) {
+            throw new ManutencaoNaoEstaAbertaException(
+                    "A manutenção já está finalizada."
+            );
+        }
+
+        manutencao.setDescricaoServico(requestDTO.descricaoServico());
+        manutencao.setCustoMaoDeObra(requestDTO.custoMaoDeObra() == null
+                ? BigDecimal.ZERO
+                : requestDTO.custoMaoDeObra());
+        manutencao.setStatus(StatusManutencao.CONCLUIDA);
+        manutencao.setDataConclusao(LocalDateTime.now());
+
+        Manutencao atualizada = manutencaoRepository.save(manutencao);
+        return ResponseEntity.ok(ManutencaoResponseDTO.fromEntity(atualizada));
     }
 }
