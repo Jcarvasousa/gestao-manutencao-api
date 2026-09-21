@@ -2,6 +2,7 @@ package br.com.joaovitor.gestaomanutencao.controller;
 
 import br.com.joaovitor.gestaomanutencao.dto.OrcamentoMensalRequestDTO;
 import br.com.joaovitor.gestaomanutencao.dto.OrcamentoMensalResponseDTO;
+import br.com.joaovitor.gestaomanutencao.exception.OrcamentoJaExisteException;
 import br.com.joaovitor.gestaomanutencao.exception.RecursoNaoEncontradoException;
 import br.com.joaovitor.gestaomanutencao.model.OrcamentoMensal;
 import br.com.joaovitor.gestaomanutencao.repository.OrcamentoMensalRepository;
@@ -31,7 +32,7 @@ public class OrcamentoMensalController {
             @Valid @RequestBody OrcamentoMensalRequestDTO requestDTO
     ) {
         if (orcamentoMensalRepository.findByMesAndAno(requestDTO.mes(), requestDTO.ano()).isPresent()) {
-            throw new RuntimeException("Já existe orçamento cadastrado para este mês/ano.");
+            throw new OrcamentoJaExisteException("Já existe orçamento cadastrado para este mês/ano.");
         }
 
         OrcamentoMensal orcamentoMensal = new OrcamentoMensal();

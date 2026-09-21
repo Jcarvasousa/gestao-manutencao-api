@@ -18,6 +18,7 @@ import org.openpdf.text.pdf.PdfWriter;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -53,6 +54,7 @@ public class RelatorioController {
     }
 
     @GetMapping("/custo-mensal")
+    @Transactional(readOnly = true)
     public ResponseEntity<RelatorioCustoMensalDTO> custoMensal(
             @RequestParam Integer mes,
             @RequestParam Integer ano
@@ -77,6 +79,7 @@ public class RelatorioController {
     }
 
     @GetMapping("/custo-mensal/pdf")
+    @Transactional(readOnly = true)
     public ResponseEntity<byte[]> custoMensalPdf(
             @RequestParam Integer mes,
             @RequestParam Integer ano
@@ -112,6 +115,7 @@ public class RelatorioController {
     }
 
     @GetMapping("/orcamento-mensal")
+    @Transactional(readOnly = true)
     public ResponseEntity<RelatorioOrcamentoMensalDTO> orcamentoMensal(
             @RequestParam Integer mes,
             @RequestParam Integer ano
@@ -144,6 +148,7 @@ public class RelatorioController {
     }
 
     @GetMapping("/orcamento-mensal/pdf")
+    @Transactional(readOnly = true)
     public ResponseEntity<byte[]> orcamentoMensalPdf(
             @RequestParam Integer mes,
             @RequestParam Integer ano
@@ -189,6 +194,7 @@ public class RelatorioController {
     }
 
     @GetMapping("/orcamento-anual")
+    @Transactional(readOnly = true)
     public ResponseEntity<RelatorioOrcamentoAnualDTO> orcamentoAnual(
             @RequestParam Integer ano
     ) {
@@ -218,6 +224,7 @@ public class RelatorioController {
     }
 
     @GetMapping("/orcamento-anual/pdf")
+    @Transactional(readOnly = true)
     public ResponseEntity<byte[]> orcamentoAnualPdf(
             @RequestParam Integer ano
     ) throws DocumentException {
@@ -260,6 +267,7 @@ public class RelatorioController {
     }
 
     @GetMapping("/gasto-realizado")
+    @Transactional(readOnly = true)
     public ResponseEntity<RelatorioGastoRealizadoDTO> gastoRealizado(
             @RequestParam Integer mes,
             @RequestParam Integer ano
@@ -271,6 +279,7 @@ public class RelatorioController {
     }
 
     @GetMapping("/gasto-realizado/pdf")
+    @Transactional(readOnly = true)
     public ResponseEntity<byte[]> gastoRealizadoPdf(
             @RequestParam Integer mes,
             @RequestParam Integer ano
@@ -299,6 +308,7 @@ public class RelatorioController {
     }
 
     @GetMapping("/custo-maquina/mensal")
+    @Transactional(readOnly = true)
     public ResponseEntity<RelatorioCustoMaquinaDTO> custoMaquinaMensal(
             @RequestParam Long maquinaId,
             @RequestParam Integer mes,
@@ -329,6 +339,7 @@ public class RelatorioController {
     }
 
     @GetMapping("/custo-maquina/mensal/pdf")
+    @Transactional(readOnly = true)
     public ResponseEntity<byte[]> custoMaquinaMensalPdf(
             @RequestParam Long maquinaId,
                 @RequestParam Integer mes,
@@ -371,6 +382,7 @@ public class RelatorioController {
     }
 
     @GetMapping("/custo-maquina/anual")
+    @Transactional(readOnly = true)
     public ResponseEntity<RelatorioCustoMaquinaDTO> custoMaquinaAnual(
                 @RequestParam Long maquinaId,
             @RequestParam Integer ano
@@ -400,6 +412,7 @@ public class RelatorioController {
     }
 
     @GetMapping("/custo-maquina/anual/pdf")
+    @Transactional(readOnly = true)
     public ResponseEntity<byte[]> custoMaquinaAnualPdf(
                 @RequestParam Long maquinaId,
                 @RequestParam Integer ano
@@ -440,6 +453,7 @@ public class RelatorioController {
     }
 
     @GetMapping("/custo-maquina/total")
+    @Transactional(readOnly = true)
     public ResponseEntity<RelatorioCustoMaquinaDTO> custoMaquinaTotal(
                 @RequestParam Long maquinaId
     ) {
@@ -468,6 +482,7 @@ public class RelatorioController {
     }
 
     @GetMapping("/custo-maquina/total/pdf")
+    @Transactional(readOnly = true)
     public ResponseEntity<byte[]> custoMaquinaTotalPdf(
                 @RequestParam Long maquinaId
     ) throws DocumentException {

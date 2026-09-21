@@ -6,6 +6,7 @@ import br.com.joaovitor.gestaomanutencao.exception.RecursoNaoEncontradoException
 import br.com.joaovitor.gestaomanutencao.model.Peca;
 import br.com.joaovitor.gestaomanutencao.repository.PecaRepository;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -34,7 +35,7 @@ public class PecaController {
         peca.setCustoUnitario(requestDTO.custoUnitario());
 
         Peca salva = pecaRepository.save(peca);
-        return ResponseEntity.status(201).body(PecaResponseDTO.fromEntity(salva));
+        return ResponseEntity.status(HttpStatus.CREATED).body(PecaResponseDTO.fromEntity(salva));
     }
 
     @GetMapping

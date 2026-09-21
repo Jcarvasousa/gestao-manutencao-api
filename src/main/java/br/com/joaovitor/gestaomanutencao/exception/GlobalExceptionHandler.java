@@ -1,5 +1,8 @@
 package br.com.joaovitor.gestaomanutencao.exception;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -13,6 +16,8 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     public record ErroResponseDTO(
             LocalDateTime timestamp,
@@ -70,6 +75,32 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(status).body(body);
     }
 
+    @ExceptionHandler(OrcamentoJaExisteException.class)
+    public ResponseEntity<ErroResponseDTO> handleOrcamentoJaExisteException(OrcamentoJaExisteException exception) {
+        HttpStatus status = HttpStatus.CONFLICT;
+        ErroResponseDTO body = new ErroResponseDTO(
+                LocalDateTime.now(),
+                status.value(),
+                exception.getClass().getSimpleName(),
+                exception.getMessage()
+        );
+        return ResponseEntity.status(status).body(body);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErroResponseDTO> handleDataIntegrityViolationException(
+            DataIntegrityViolationException exception
+    ) {
+        HttpStatus status = HttpStatus.CONFLICT;
+        ErroResponseDTO body = new ErroResponseDTO(
+                LocalDateTime.now(),
+                status.value(),
+                exception.getClass().getSimpleName(),
+                "Operação viola uma restrição de integridade dos dados (ex: registro duplicado)."
+        );
+        return ResponseEntity.status(status).body(body);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, String>> handleMethodArgumentNotValidException(
             MethodArgumentNotValidException exception
@@ -79,5 +110,18 @@ public class GlobalExceptionHandler {
             errors.put(fieldError.getField(), fieldError.getDefaultMessage());
         }
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErroResponseDTO> handleException(Exception exception) {
+        LOGGER.error("Erro interno não tratado.", exception);
+        HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
+        ErroResponseDTO body = new ErroResponseDTO(
+                LocalDateTime.now(),
+                status.value(),
+                status.getReasonPhrase(),
+                "Erro interno no servidor. Contate o suporte."
+        );
+        return ResponseEntity.status(status).body(body);
     }
 }
