@@ -2,6 +2,7 @@ package br.com.joaovitor.gestaomanutencao.controller;
 
 import br.com.joaovitor.gestaomanutencao.dto.PecaRequestDTO;
 import br.com.joaovitor.gestaomanutencao.dto.PecaResponseDTO;
+import br.com.joaovitor.gestaomanutencao.exception.RecursoNaoEncontradoException;
 import br.com.joaovitor.gestaomanutencao.model.Peca;
 import br.com.joaovitor.gestaomanutencao.repository.PecaRepository;
 import jakarta.validation.Valid;
@@ -64,5 +65,28 @@ public class PecaController {
                 .map(PecaResponseDTO::fromEntity)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<PecaResponseDTO> atualizar(
+            @PathVariable Long id,
+            @Valid @RequestBody PecaRequestDTO requestDTO
+    ) {
+        Peca peca = pecaRepository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException(
+                        "Peça com ID " + id + " não encontrada."
+                ));
+
+        peca.setCodigo(requestDTO.codigo());
+        peca.setNome(requestDTO.nome());
+        peca.setCategoria(requestDTO.categoria());
+        peca.setUnidadeMedida(requestDTO.unidadeMedida());
+        peca.setLocalizacaoFisica(requestDTO.localizacaoFisica());
+        peca.setQuantidadeAtual(requestDTO.quantidadeAtual());
+        peca.setEstoqueMinimo(requestDTO.estoqueMinimo());
+        peca.setCustoUnitario(requestDTO.custoUnitario());
+
+        Peca atualizada = pecaRepository.save(peca);
+        return ResponseEntity.ok(PecaResponseDTO.fromEntity(atualizada));
     }
 }
