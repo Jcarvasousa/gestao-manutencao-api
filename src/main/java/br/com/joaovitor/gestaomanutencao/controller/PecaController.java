@@ -5,7 +5,10 @@ import br.com.joaovitor.gestaomanutencao.dto.PecaResponseDTO;
 import br.com.joaovitor.gestaomanutencao.exception.RecursoNaoEncontradoException;
 import br.com.joaovitor.gestaomanutencao.model.Peca;
 import br.com.joaovitor.gestaomanutencao.repository.PecaRepository;
+import br.com.joaovitor.gestaomanutencao.specification.PecaSpecification;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -39,13 +42,24 @@ public class PecaController {
     }
 
     @GetMapping
-    public ResponseEntity<List<PecaResponseDTO>> listarTodas() {
-        List<PecaResponseDTO> lista = pecaRepository.findAll()
-                .stream()
-                .map(PecaResponseDTO::fromEntity)
-                .toList();
+    public ResponseEntity<Page<PecaResponseDTO>> listarTodas(
+            Pageable pageable,
+            @RequestParam(required = false) String categoria,
+            @RequestParam(required = false) String codigo
+    ) {
+        var specification = org.springframework.data.jpa.domain.Specification.where(
+                PecaSpecification.comCategoria(null)
+        );
+        if (categoria != null) {
+            specification = specification.and(PecaSpecification.comCategoria(categoria));
+        }
+        if (codigo != null) {
+            specification = specification.and(PecaSpecification.comCodigo(codigo));
+        }
 
-        return ResponseEntity.ok(lista);
+        return ResponseEntity.ok(
+                pecaRepository.findAll(specification, pageable).map(PecaResponseDTO::fromEntity)
+        );
     }
 
     @GetMapping("/abaixo-do-minimo")

@@ -2,6 +2,7 @@ package br.com.joaovitor.gestaomanutencao.service;
 
 import br.com.joaovitor.gestaomanutencao.exception.CompraDesnecessariaException;
 import br.com.joaovitor.gestaomanutencao.exception.RecursoNaoEncontradoException;
+import br.com.joaovitor.gestaomanutencao.exception.SolicitacaoJaAbertaException;
 import br.com.joaovitor.gestaomanutencao.model.Peca;
 import br.com.joaovitor.gestaomanutencao.model.SolicitacaoCompra;
 import br.com.joaovitor.gestaomanutencao.model.StatusSolicitacaoCompra;
@@ -20,6 +21,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -77,6 +80,60 @@ class SolicitacaoCompraServiceTest {
     }
 
     @Test
+    void criarDeveLancarExcecaoQuandoSolicitacaoAguardandoOrcamentoJaExistir() {
+        Peca peca = peca(2);
+        SolicitacaoCompra existente = solicitacao(10L, StatusSolicitacaoCompra.AGUARDANDO_ORCAMENTO);
+        when(pecaRepository.findById(1L)).thenReturn(Optional.of(peca));
+        when(solicitacaoCompraRepository.findFirstByPecaIdAndStatusIn(anyLong(), anyList()))
+                .thenReturn(Optional.of(existente));
+
+        assertThrows(SolicitacaoJaAbertaException.class,
+                () -> service.criar(1L, null, 5, "Fornecedor", null));
+    }
+
+    @Test
+    void criarDeveLancarExcecaoQuandoSolicitacaoAprovadaJaExistir() {
+        Peca peca = peca(2);
+        SolicitacaoCompra existente = solicitacao(11L, StatusSolicitacaoCompra.APROVADA);
+        when(pecaRepository.findById(1L)).thenReturn(Optional.of(peca));
+        when(solicitacaoCompraRepository.findFirstByPecaIdAndStatusIn(anyLong(), anyList()))
+                .thenReturn(Optional.of(existente));
+
+        assertThrows(SolicitacaoJaAbertaException.class,
+                () -> service.criar(1L, null, 5, "Fornecedor", null));
+    }
+
+    @Test
+    void criarDevePermitirNovaSolicitacaoQuandoAnteriorFoiRecebida() {
+        Peca peca = peca(2);
+        when(pecaRepository.findById(1L)).thenReturn(Optional.of(peca));
+        when(solicitacaoCompraRepository.findFirstByPecaIdAndStatusIn(anyLong(), anyList()))
+                .thenReturn(Optional.empty());
+        when(solicitacaoCompraRepository.save(any(SolicitacaoCompra.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        SolicitacaoCompra resultado = service.criar(1L, null, 5, "Fornecedor", null);
+
+        assertNotNull(resultado);
+        verify(solicitacaoCompraRepository).save(resultado);
+    }
+
+    @Test
+    void criarDevePermitirNovaSolicitacaoQuandoAnteriorFoiCancelada() {
+        Peca peca = peca(2);
+        when(pecaRepository.findById(1L)).thenReturn(Optional.of(peca));
+        when(solicitacaoCompraRepository.findFirstByPecaIdAndStatusIn(anyLong(), anyList()))
+                .thenReturn(Optional.empty());
+        when(solicitacaoCompraRepository.save(any(SolicitacaoCompra.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        SolicitacaoCompra resultado = service.criar(1L, null, 5, "Fornecedor", null);
+
+        assertNotNull(resultado);
+        verify(solicitacaoCompraRepository).save(resultado);
+    }
+
+    @Test
     void marcarComoRecebidaDeveLancarExcecaoQuandoSolicitacaoNaoExistir() {
         when(solicitacaoCompraRepository.findById(1L)).thenReturn(Optional.empty());
 
@@ -110,5 +167,12 @@ class SolicitacaoCompraServiceTest {
         peca.setId(1L);
         peca.setQuantidadeAtual(quantidadeAtual);
         return peca;
+    }
+
+    private SolicitacaoCompra solicitacao(Long id, StatusSolicitacaoCompra status) {
+        SolicitacaoCompra solicitacao = new SolicitacaoCompra();
+        solicitacao.setId(id);
+        solicitacao.setStatus(status);
+        return solicitacao;
     }
 }

@@ -4,8 +4,12 @@ import br.com.joaovitor.gestaomanutencao.dto.MaquinaRequestDTO;
 import br.com.joaovitor.gestaomanutencao.dto.MaquinaResponseDTO;
 import br.com.joaovitor.gestaomanutencao.exception.RecursoNaoEncontradoException;
 import br.com.joaovitor.gestaomanutencao.model.Maquina;
+import br.com.joaovitor.gestaomanutencao.model.StatusMaquina;
 import br.com.joaovitor.gestaomanutencao.repository.MaquinaRepository;
+import br.com.joaovitor.gestaomanutencao.specification.MaquinaSpecification;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,9 +18,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
 import java.util.Optional;
 
 @RestController
@@ -43,13 +47,28 @@ public class MaquinaController {
     }
 
     @GetMapping
-    public ResponseEntity<List<MaquinaResponseDTO>> listarTodas() {
-        List<MaquinaResponseDTO> maquinas = maquinaRepository.findAll()
-                .stream()
-                .map(MaquinaResponseDTO::fromEntity)
-                .toList();
+    public ResponseEntity<Page<MaquinaResponseDTO>> listarTodas(
+            Pageable pageable,
+            @RequestParam(required = false) StatusMaquina status,
+            @RequestParam(required = false) String setor,
+            @RequestParam(required = false) String codigo
+    ) {
+        var specification = org.springframework.data.jpa.domain.Specification.where(
+                MaquinaSpecification.comStatus(null)
+        );
+        if (status != null) {
+            specification = specification.and(MaquinaSpecification.comStatus(status));
+        }
+        if (setor != null) {
+            specification = specification.and(MaquinaSpecification.comSetor(setor));
+        }
+        if (codigo != null) {
+            specification = specification.and(MaquinaSpecification.comCodigo(codigo));
+        }
 
-        return ResponseEntity.ok(maquinas);
+        return ResponseEntity.ok(
+                maquinaRepository.findAll(specification, pageable).map(MaquinaResponseDTO::fromEntity)
+        );
     }
 
     @GetMapping("/{id}")

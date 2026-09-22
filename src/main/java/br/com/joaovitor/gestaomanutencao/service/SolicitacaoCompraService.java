@@ -2,6 +2,7 @@ package br.com.joaovitor.gestaomanutencao.service;
 
 import br.com.joaovitor.gestaomanutencao.exception.CompraDesnecessariaException;
 import br.com.joaovitor.gestaomanutencao.exception.RecursoNaoEncontradoException;
+import br.com.joaovitor.gestaomanutencao.exception.SolicitacaoJaAbertaException;
 import br.com.joaovitor.gestaomanutencao.model.Manutencao;
 import br.com.joaovitor.gestaomanutencao.model.Peca;
 import br.com.joaovitor.gestaomanutencao.model.SolicitacaoCompra;
@@ -14,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 public class SolicitacaoCompraService {
@@ -45,6 +47,21 @@ public class SolicitacaoCompraService {
     ) {
         Peca peca = pecaRepository.findById(pecaId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Peça não encontrada para o id: " + pecaId));
+
+        solicitacaoCompraRepository.findFirstByPecaIdAndStatusIn(
+                        pecaId,
+                        List.of(
+                                StatusSolicitacaoCompra.AGUARDANDO_ORCAMENTO,
+                                StatusSolicitacaoCompra.APROVADA,
+                                StatusSolicitacaoCompra.PEDIDO_REALIZADO
+                        )
+                )
+                .ifPresent(solicitacao -> {
+                    throw new SolicitacaoJaAbertaException(
+                            "Já existe solicitação de compra aberta para a peça "
+                                    + pecaId + ": solicitação #" + solicitacao.getId()
+                    );
+                });
 
         if (peca.getQuantidadeAtual() >= quantidadeNecessaria) {
             throw new CompraDesnecessariaException(

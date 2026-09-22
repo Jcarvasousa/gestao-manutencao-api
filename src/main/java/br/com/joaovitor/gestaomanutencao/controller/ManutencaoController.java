@@ -8,16 +8,19 @@ import br.com.joaovitor.gestaomanutencao.exception.RecursoNaoEncontradoException
 import br.com.joaovitor.gestaomanutencao.model.Manutencao;
 import br.com.joaovitor.gestaomanutencao.model.Maquina;
 import br.com.joaovitor.gestaomanutencao.model.StatusManutencao;
+import br.com.joaovitor.gestaomanutencao.model.TipoManutencao;
 import br.com.joaovitor.gestaomanutencao.repository.ManutencaoRepository;
 import br.com.joaovitor.gestaomanutencao.repository.MaquinaRepository;
+import br.com.joaovitor.gestaomanutencao.specification.ManutencaoSpecification;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/manutencoes")
@@ -51,13 +54,36 @@ public class ManutencaoController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ManutencaoResponseDTO>> listarTodas() {
-        List<ManutencaoResponseDTO> lista = manutencaoRepository.findAll()
-                .stream()
-                .map(ManutencaoResponseDTO::fromEntity)
-                .toList();
+    public ResponseEntity<Page<ManutencaoResponseDTO>> listarTodas(
+            Pageable pageable,
+            @RequestParam(required = false) StatusManutencao status,
+            @RequestParam(required = false) TipoManutencao tipo,
+            @RequestParam(required = false) Long maquinaId,
+            @RequestParam(required = false) LocalDateTime dataInicio,
+            @RequestParam(required = false) LocalDateTime dataFim
+    ) {
+        var specification = org.springframework.data.jpa.domain.Specification.where(
+                ManutencaoSpecification.comStatus(null)
+        );
+        if (status != null) {
+            specification = specification.and(ManutencaoSpecification.comStatus(status));
+        }
+        if (tipo != null) {
+            specification = specification.and(ManutencaoSpecification.comTipo(tipo));
+        }
+        if (maquinaId != null) {
+            specification = specification.and(ManutencaoSpecification.comMaquinaId(maquinaId));
+        }
+        if (dataInicio != null) {
+            specification = specification.and(ManutencaoSpecification.comDataAberturaDesde(dataInicio));
+        }
+        if (dataFim != null) {
+            specification = specification.and(ManutencaoSpecification.comDataAberturaAte(dataFim));
+        }
 
-        return ResponseEntity.ok(lista);
+        return ResponseEntity.ok(
+                manutencaoRepository.findAll(specification, pageable).map(ManutencaoResponseDTO::fromEntity)
+        );
     }
 
     @GetMapping("/{id}")
