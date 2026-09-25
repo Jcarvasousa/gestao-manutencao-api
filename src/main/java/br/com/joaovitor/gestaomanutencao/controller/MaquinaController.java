@@ -2,6 +2,7 @@ package br.com.joaovitor.gestaomanutencao.controller;
 
 import br.com.joaovitor.gestaomanutencao.dto.MaquinaRequestDTO;
 import br.com.joaovitor.gestaomanutencao.dto.MaquinaResponseDTO;
+import br.com.joaovitor.gestaomanutencao.dto.MaquinaStatusRequestDTO;
 import br.com.joaovitor.gestaomanutencao.exception.RecursoNaoEncontradoException;
 import br.com.joaovitor.gestaomanutencao.model.Maquina;
 import br.com.joaovitor.gestaomanutencao.model.StatusMaquina;
@@ -13,6 +14,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -95,6 +97,22 @@ public class MaquinaController {
         maquina.setCodigo(requestDTO.codigo());
         maquina.setDescricao(requestDTO.descricao());
         maquina.setSetor(requestDTO.setor());
+
+        Maquina atualizada = maquinaRepository.save(maquina);
+        return ResponseEntity.ok(MaquinaResponseDTO.fromEntity(atualizada));
+    }
+
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<MaquinaResponseDTO> atualizarStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody MaquinaStatusRequestDTO requestDTO
+    ) {
+        Maquina maquina = maquinaRepository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException(
+                        "Máquina com ID " + id + " não encontrada."
+                ));
+
+        maquina.setStatus(requestDTO.status());
 
         Maquina atualizada = maquinaRepository.save(maquina);
         return ResponseEntity.ok(MaquinaResponseDTO.fromEntity(atualizada));
