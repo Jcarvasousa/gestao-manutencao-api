@@ -2,6 +2,10 @@ package br.com.joaovitor.gestaomanutencao.repository;
 
 import br.com.joaovitor.gestaomanutencao.model.SolicitacaoCompra;
 import br.com.joaovitor.gestaomanutencao.model.StatusSolicitacaoCompra;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -18,6 +22,10 @@ public interface SolicitacaoCompraRepository extends JpaRepository<SolicitacaoCo
             Long pecaId,
             List<StatusSolicitacaoCompra> statusList
     );
+
+    @Override
+    @EntityGraph(attributePaths = {"peca", "manutencao"})
+    Page<SolicitacaoCompra> findAll(Specification<SolicitacaoCompra> spec, Pageable pageable);
 
     @Query("""
             SELECT COALESCE(SUM(s.valorOrcamento), 0)
