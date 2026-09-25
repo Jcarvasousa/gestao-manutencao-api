@@ -2,6 +2,10 @@ package br.com.joaovitor.gestaomanutencao.repository;
 
 import br.com.joaovitor.gestaomanutencao.model.Manutencao;
 import br.com.joaovitor.gestaomanutencao.model.StatusManutencao;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -15,6 +19,10 @@ public interface ManutencaoRepository extends JpaRepository<Manutencao, Long>, J
     List<Manutencao> findByMaquinaId(Long maquinaId);
 
     List<Manutencao> findByStatus(StatusManutencao status);
+
+    @Override
+    @EntityGraph(attributePaths = "maquina")
+    Page<Manutencao> findAll(Specification<Manutencao> spec, Pageable pageable);
 
     @Query("""
             SELECT COALESCE(SUM(m.custoMaoDeObra), 0)
