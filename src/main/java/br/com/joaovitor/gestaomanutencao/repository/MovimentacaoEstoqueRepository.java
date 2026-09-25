@@ -1,7 +1,11 @@
 package br.com.joaovitor.gestaomanutencao.repository;
 
 import br.com.joaovitor.gestaomanutencao.model.MovimentacaoEstoque;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.repository.query.Param;
@@ -11,6 +15,10 @@ import java.util.List;
 
 public interface MovimentacaoEstoqueRepository extends JpaRepository<MovimentacaoEstoque, Long>,
         JpaSpecificationExecutor<MovimentacaoEstoque> {
+
+    @Override
+    @EntityGraph(attributePaths = {"peca", "manutencao"})
+    Page<MovimentacaoEstoque> findAll(Specification<MovimentacaoEstoque> spec, Pageable pageable);
 
     List<MovimentacaoEstoque> findByPecaId(Long pecaId);
 
