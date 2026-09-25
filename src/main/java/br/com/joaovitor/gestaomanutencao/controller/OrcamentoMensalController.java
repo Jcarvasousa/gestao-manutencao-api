@@ -17,6 +17,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/orcamentos-mensais")
 public class OrcamentoMensalController {
@@ -72,5 +74,14 @@ public class OrcamentoMensalController {
         OrcamentoMensal atualizado = orcamentoMensalRepository.save(orcamentoMensal);
 
         return ResponseEntity.ok(OrcamentoMensalResponseDTO.fromEntity(atualizado));
+    }
+
+    @GetMapping("/ano/{ano}")
+    public ResponseEntity<List<OrcamentoMensalResponseDTO>> listarPorAno(@PathVariable Integer ano) {
+        List<OrcamentoMensal> orcamentos = orcamentoMensalRepository.findByAno(ano);
+        List<OrcamentoMensalResponseDTO> response = orcamentos.stream()
+                .map(OrcamentoMensalResponseDTO::fromEntity)
+                .toList();
+        return ResponseEntity.ok(response);
     }
 }
