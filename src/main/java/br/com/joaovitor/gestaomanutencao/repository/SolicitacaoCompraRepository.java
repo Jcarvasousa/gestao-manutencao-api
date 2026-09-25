@@ -27,6 +27,9 @@ public interface SolicitacaoCompraRepository extends JpaRepository<SolicitacaoCo
     @EntityGraph(attributePaths = {"peca", "manutencao"})
     Page<SolicitacaoCompra> findAll(Specification<SolicitacaoCompra> spec, Pageable pageable);
 
+    @EntityGraph(attributePaths = {"peca", "manutencao"})
+    List<SolicitacaoCompra> findByStatusInOrderByDataSolicitacaoAsc(List<StatusSolicitacaoCompra> statuses);
+
     @Query("""
             SELECT COALESCE(SUM(s.valorOrcamento), 0)
             FROM SolicitacaoCompra s

@@ -21,6 +21,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.GetMapping;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/solicitacoes-compra")
 public class SolicitacaoCompraController {
@@ -55,6 +57,21 @@ public class SolicitacaoCompraController {
         return ResponseEntity.ok(
                 solicitacaoCompraRepository.findAll(specification, pageable)
                         .map(SolicitacaoCompraResponseDTO::fromEntity)
+        );
+    }
+
+    @GetMapping("/pendentes")
+    public ResponseEntity<List<SolicitacaoCompraResponseDTO>> listarPendentes() {
+        List<StatusSolicitacaoCompra> statusPendentes = List.of(
+                StatusSolicitacaoCompra.AGUARDANDO_ORCAMENTO,
+                StatusSolicitacaoCompra.APROVADA,
+                StatusSolicitacaoCompra.PEDIDO_REALIZADO
+        );
+
+        return ResponseEntity.ok(
+                solicitacaoCompraRepository.findByStatusInOrderByDataSolicitacaoAsc(statusPendentes).stream()
+                        .map(SolicitacaoCompraResponseDTO::fromEntity)
+                        .toList()
         );
     }
 
