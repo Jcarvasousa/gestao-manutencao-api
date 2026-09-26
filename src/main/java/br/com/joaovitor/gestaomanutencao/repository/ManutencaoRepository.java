@@ -13,6 +13,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
 public interface ManutencaoRepository extends JpaRepository<Manutencao, Long>, JpaSpecificationExecutor<Manutencao> {
 
@@ -23,6 +24,10 @@ public interface ManutencaoRepository extends JpaRepository<Manutencao, Long>, J
     @Override
     @EntityGraph(attributePaths = "maquina")
     Page<Manutencao> findAll(Specification<Manutencao> spec, Pageable pageable);
+
+    @Override
+    @EntityGraph(attributePaths = "maquina")
+    Optional<Manutencao> findById(Long id);
 
     @Query("""
             SELECT COALESCE(SUM(m.custoMaoDeObra), 0)
