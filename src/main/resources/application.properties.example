@@ -1,3 +1,7 @@
 spring.datasource.url=jdbc:postgresql://localhost:5432/gestao_manutencao
 spring.datasource.username=postgres
 spring.datasource.password=SUA_SENHA_AQUI
+
+# Origem permitida para CORS. Em producao, use a URL do frontend publicado na Vercel,
+# ex: https://seu-projeto.vercel.app
+app.cors.allowed-origin=http://localhost:5173
