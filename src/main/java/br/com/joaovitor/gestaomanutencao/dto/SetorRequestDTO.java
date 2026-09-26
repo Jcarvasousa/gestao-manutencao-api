@@ -2,11 +2,8 @@ package br.com.joaovitor.gestaomanutencao.dto;
 
 import jakarta.validation.constraints.NotBlank;
 
-public record MaquinaRequestDTO(
+public record SetorRequestDTO(
         @NotBlank
-        String codigo,
-        @NotBlank
-        String descricao,
-        Long setorId
+        String nome
 ) {
 }

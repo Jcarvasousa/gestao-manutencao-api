@@ -9,7 +9,8 @@ public record MaquinaResponseDTO(
         Long id,
         String codigo,
         String descricao,
-        String setor,
+        Long setorId,
+        String setorNome,
         StatusMaquina status,
         LocalDateTime criadaEm,
         LocalDateTime atualizadaEm
@@ -19,7 +20,8 @@ public record MaquinaResponseDTO(
                 entity.getId(),
                 entity.getCodigo(),
                 entity.getDescricao(),
-                entity.getSetor(),
+                entity.getSetor() == null ? null : entity.getSetor().getId(),
+                entity.getSetor() == null ? null : entity.getSetor().getNome(),
                 entity.getStatus(),
                 entity.getCriadaEm(),
                 entity.getAtualizadaEm()

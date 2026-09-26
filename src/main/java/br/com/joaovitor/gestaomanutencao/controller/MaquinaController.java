@@ -5,8 +5,10 @@ import br.com.joaovitor.gestaomanutencao.dto.MaquinaResponseDTO;
 import br.com.joaovitor.gestaomanutencao.dto.MaquinaStatusRequestDTO;
 import br.com.joaovitor.gestaomanutencao.exception.RecursoNaoEncontradoException;
 import br.com.joaovitor.gestaomanutencao.model.Maquina;
+import br.com.joaovitor.gestaomanutencao.model.Setor;
 import br.com.joaovitor.gestaomanutencao.model.StatusMaquina;
 import br.com.joaovitor.gestaomanutencao.repository.MaquinaRepository;
+import br.com.joaovitor.gestaomanutencao.repository.SetorRepository;
 import br.com.joaovitor.gestaomanutencao.specification.MaquinaSpecification;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -30,9 +32,11 @@ import java.util.Optional;
 public class MaquinaController {
 
     private final MaquinaRepository maquinaRepository;
+    private final SetorRepository setorRepository;
 
-    public MaquinaController(MaquinaRepository maquinaRepository) {
+    public MaquinaController(MaquinaRepository maquinaRepository, SetorRepository setorRepository) {
         this.maquinaRepository = maquinaRepository;
+        this.setorRepository = setorRepository;
     }
 
     @PostMapping
@@ -40,12 +44,12 @@ public class MaquinaController {
         Maquina maquina = new Maquina();
         maquina.setCodigo(requestDTO.codigo());
         maquina.setDescricao(requestDTO.descricao());
-        maquina.setSetor(requestDTO.setor());
+        maquina.setSetor(buscarSetor(requestDTO.setorId()));
 
-        Maquina salva = maquinaRepository.save(maquina);
+        maquinaRepository.save(maquina);
 
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(MaquinaResponseDTO.fromEntity(salva));
+                .body(MaquinaResponseDTO.fromEntity(maquina));
     }
 
     @GetMapping
@@ -96,10 +100,10 @@ public class MaquinaController {
 
         maquina.setCodigo(requestDTO.codigo());
         maquina.setDescricao(requestDTO.descricao());
-        maquina.setSetor(requestDTO.setor());
+        maquina.setSetor(buscarSetor(requestDTO.setorId()));
 
-        Maquina atualizada = maquinaRepository.save(maquina);
-        return ResponseEntity.ok(MaquinaResponseDTO.fromEntity(atualizada));
+        maquinaRepository.save(maquina);
+        return ResponseEntity.ok(MaquinaResponseDTO.fromEntity(maquina));
     }
 
     @PatchMapping("/{id}/status")
@@ -114,7 +118,18 @@ public class MaquinaController {
 
         maquina.setStatus(requestDTO.status());
 
-        Maquina atualizada = maquinaRepository.save(maquina);
-        return ResponseEntity.ok(MaquinaResponseDTO.fromEntity(atualizada));
+        maquinaRepository.save(maquina);
+        return ResponseEntity.ok(MaquinaResponseDTO.fromEntity(maquina));
+    }
+
+    private Setor buscarSetor(Long setorId) {
+        if (setorId == null) {
+            return null;
+        }
+
+        return setorRepository.findById(setorId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException(
+                        "Setor com ID " + setorId + " não encontrado."
+                ));
     }
 }

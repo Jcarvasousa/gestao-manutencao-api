@@ -3,11 +3,13 @@ package br.com.joaovitor.gestaomanutencao.controller;
 import br.com.joaovitor.gestaomanutencao.model.Maquina;
 import br.com.joaovitor.gestaomanutencao.model.Manutencao;
 import br.com.joaovitor.gestaomanutencao.model.Peca;
+import br.com.joaovitor.gestaomanutencao.model.Setor;
 import br.com.joaovitor.gestaomanutencao.model.StatusManutencao;
 import br.com.joaovitor.gestaomanutencao.model.TipoManutencao;
 import br.com.joaovitor.gestaomanutencao.repository.ManutencaoRepository;
 import br.com.joaovitor.gestaomanutencao.repository.MaquinaRepository;
 import br.com.joaovitor.gestaomanutencao.repository.PecaRepository;
+import br.com.joaovitor.gestaomanutencao.repository.SetorRepository;
 import br.com.joaovitor.gestaomanutencao.service.MovimentacaoEstoqueService;
 import br.com.joaovitor.gestaomanutencao.service.SolicitacaoCompraService;
 import jakarta.persistence.EntityManager;
@@ -26,6 +28,7 @@ import java.util.Map;
 public class AdminController {
 
     private final EntityManager entityManager;
+    private final SetorRepository setorRepository;
     private final MaquinaRepository maquinaRepository;
     private final PecaRepository pecaRepository;
     private final ManutencaoRepository manutencaoRepository;
@@ -34,6 +37,7 @@ public class AdminController {
 
     public AdminController(
             EntityManager entityManager,
+            SetorRepository setorRepository,
             MaquinaRepository maquinaRepository,
             PecaRepository pecaRepository,
             ManutencaoRepository manutencaoRepository,
@@ -41,6 +45,7 @@ public class AdminController {
             SolicitacaoCompraService solicitacaoCompraService
     ) {
         this.entityManager = entityManager;
+        this.setorRepository = setorRepository;
         this.maquinaRepository = maquinaRepository;
         this.pecaRepository = pecaRepository;
         this.manutencaoRepository = manutencaoRepository;
@@ -52,13 +57,16 @@ public class AdminController {
     @Transactional
     public ResponseEntity<Map<String, String>> resetarDadosDemo() {
         entityManager.createNativeQuery(
-                "TRUNCATE TABLE movimentacao_estoque, solicitacao_compra, manutencao, peca, maquina, orcamento_mensal "
+                "TRUNCATE TABLE movimentacao_estoque, solicitacao_compra, manutencao, peca, maquina, setor, orcamento_mensal "
                         + "RESTART IDENTITY CASCADE"
         ).executeUpdate();
 
-        Maquina maq001 = criarMaquina("MAQ-001", "Torno CNC Romi para usinagem de pecas metalicas", "Corte e Dobra");
-        Maquina maq002 = criarMaquina("MAQ-002", "Prensa Hidraulica 200T", "Corte e Dobra");
-        Maquina maq003 = criarMaquina("MAQ-003", "Solda MIG Automatica", "Solda");
+        Setor setorCorteDobra = criarSetor("Corte e Dobra");
+        Setor setorSolda = criarSetor("Solda");
+
+        Maquina maq001 = criarMaquina("MAQ-001", "Torno CNC Romi para usinagem de pecas metalicas", setorCorteDobra);
+        Maquina maq002 = criarMaquina("MAQ-002", "Prensa Hidraulica 200T", setorCorteDobra);
+        Maquina maq003 = criarMaquina("MAQ-003", "Solda MIG Automatica", setorSolda);
 
         Peca pec001 = criarPeca("PEC-001", "Rolamento 6205", "Rolamentos", "un", "Prateleira A1", 15, 5, "45.90");
         Peca pec002 = criarPeca("PEC-002", "Correia Dentada", "Transmissao", "un", "Prateleira B2", 2, 5, "89.50");
@@ -92,7 +100,13 @@ public class AdminController {
         return ResponseEntity.ok(Map.of("mensagem", "Dados de demonstracao resetados com sucesso."));
     }
 
-    private Maquina criarMaquina(String codigo, String descricao, String setor) {
+    private Setor criarSetor(String nome) {
+        Setor setor = new Setor();
+        setor.setNome(nome);
+        return setorRepository.save(setor);
+    }
+
+    private Maquina criarMaquina(String codigo, String descricao, Setor setor) {
         Maquina maquina = new Maquina();
         maquina.setCodigo(codigo);
         maquina.setDescricao(descricao);

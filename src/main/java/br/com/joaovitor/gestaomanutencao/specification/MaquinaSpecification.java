@@ -19,7 +19,7 @@ public final class MaquinaSpecification {
         return (root, query, criteriaBuilder) -> setor == null
                 ? criteriaBuilder.conjunction()
                 : criteriaBuilder.like(
-                        criteriaBuilder.lower(root.get("setor")),
+                        criteriaBuilder.lower(root.get("setor").get("nome")),
                         "%" + setor.toLowerCase() + "%"
                 );
     }
