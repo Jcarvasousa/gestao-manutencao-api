@@ -1,0 +1,37 @@
+name: Reset dados de demonstracao
+
+on:
+  schedule:
+    - cron: '0 5 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  reset:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fazer login e obter token
+        id: login
+        run: |
+          RESPONSE=$(curl -s -X POST \
+            -H "Content-Type: application/json" \
+            -d "{\"username\":\"${{ secrets.DEMO_USERNAME }}\",\"password\":\"${{ secrets.DEMO_PASSWORD }}\"}" \
+            https://gestao-manutencao-api-production.up.railway.app/api/auth/login)
+          TOKEN=$(echo "$RESPONSE" | grep -o '"token":"[^"]*' | sed 's/"token":"//')
+          if [ -z "$TOKEN" ]; then
+            echo "Falha ao obter token de autenticacao"
+            exit 1
+          fi
+          echo "::add-mask::$TOKEN"
+          echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
+
+      - name: Resetar dados de demonstracao
+        run: |
+          HTTP_STATUS=$(curl -s -o /tmp/response.json -w "%{http_code}" -X POST \
+            -H "Authorization: Bearer ${{ steps.login.outputs.token }}" \
+            https://gestao-manutencao-api-production.up.railway.app/api/admin/reset-demo)
+          cat /tmp/response.json
+          if [ "$HTTP_STATUS" -ne 200 ]; then
+            echo "Reset falhou com status $HTTP_STATUS"
+            exit 1
+          fi
+          echo "Reset concluido com sucesso"
