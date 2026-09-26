@@ -12,3 +12,7 @@ app.cors.allowed-origin=http://localhost:5173
 # ambiente, nunca reutilize o valor de exemplo.
 app.jwt.secret=troque-por-uma-chave-secreta-longa-e-aleatoria-em-producao
 app.jwt.expiration-ms=86400000
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+server.error.include-stacktrace=never
+spring.jpa.open-in-view=false
