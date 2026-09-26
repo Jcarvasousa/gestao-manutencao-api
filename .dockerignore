@@ -1,0 +1,15 @@
+target/
+.git/
+.idea/
+*.iml
+.iws
+.ipr
+
+# Credenciais reais nunca vao para a imagem
+src/main/resources/application.properties
+
+.vscode/
+.codex/
+HELP.md
+README.md
+*.md
