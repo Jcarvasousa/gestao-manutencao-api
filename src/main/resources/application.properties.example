@@ -5,3 +5,10 @@ spring.datasource.password=SUA_SENHA_AQUI
 # Origem permitida para CORS. Em producao, use a URL do frontend publicado na Vercel,
 # ex: https://seu-projeto.vercel.app
 app.cors.allowed-origin=http://localhost:5173
+
+# Chave secreta usada para assinar os tokens JWT. O valor abaixo e apenas um exemplo
+# para desenvolvimento local. Em producao, defina app.jwt.secret como uma string
+# longa e aleatoria (ex: gerada com openssl rand -base64 64) via variavel de
+# ambiente, nunca reutilize o valor de exemplo.
+app.jwt.secret=troque-por-uma-chave-secreta-longa-e-aleatoria-em-producao
+app.jwt.expiration-ms=86400000

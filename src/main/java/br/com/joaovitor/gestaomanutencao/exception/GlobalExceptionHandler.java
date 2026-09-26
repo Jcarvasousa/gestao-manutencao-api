@@ -6,6 +6,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -133,6 +134,20 @@ public class GlobalExceptionHandler {
                 status.value(),
                 status.getReasonPhrase(),
                 "Corpo da requisição inválido ou malformado."
+        );
+        return ResponseEntity.status(status).body(body);
+    }
+
+    // Sem este handler, o handler genérico de Exception abaixo transformaria a falha
+    // de credenciais em 500 antes que o Spring Security pudesse responder 401.
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ErroResponseDTO> handleAuthenticationException(AuthenticationException exception) {
+        HttpStatus status = HttpStatus.UNAUTHORIZED;
+        ErroResponseDTO body = new ErroResponseDTO(
+                LocalDateTime.now(),
+                status.value(),
+                status.getReasonPhrase(),
+                "Credenciais inválidas."
         );
         return ResponseEntity.status(status).body(body);
     }
