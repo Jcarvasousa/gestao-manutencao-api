@@ -110,8 +110,8 @@ public class ManutencaoController {
         manutencao.setStatus(StatusManutencao.EM_ANDAMENTO);
         manutencao.setDataInicio(LocalDateTime.now());
 
-        Manutencao atualizada = manutencaoRepository.save(manutencao);
-        return ResponseEntity.ok(ManutencaoResponseDTO.fromEntity(atualizada));
+        manutencaoRepository.save(manutencao);
+        return ResponseEntity.ok(ManutencaoResponseDTO.fromEntity(manutencao));
     }
 
     @PatchMapping("/{id}/concluir")
@@ -138,7 +138,7 @@ public class ManutencaoController {
         manutencao.setStatus(StatusManutencao.CONCLUIDA);
         manutencao.setDataConclusao(LocalDateTime.now());
 
-        Manutencao atualizada = manutencaoRepository.save(manutencao);
-        return ResponseEntity.ok(ManutencaoResponseDTO.fromEntity(atualizada));
+        manutencaoRepository.save(manutencao);
+        return ResponseEntity.ok(ManutencaoResponseDTO.fromEntity(manutencao));
     }
 }
