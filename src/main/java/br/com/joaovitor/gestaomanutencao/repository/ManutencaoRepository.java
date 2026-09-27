@@ -19,10 +19,10 @@ public interface ManutencaoRepository extends JpaRepository<Manutencao, Long>, J
     List<Manutencao> findByStatus(StatusManutencao status);
 
     @Override
-    @EntityGraph(attributePaths = {"maquina", "tecnico"})
+    @EntityGraph(attributePaths = "maquina")
     Page<Manutencao> findAll(Specification<Manutencao> spec, Pageable pageable);
 
     @Override
-    @EntityGraph(attributePaths = {"maquina", "tecnico"})
+    @EntityGraph(attributePaths = "maquina")
     Optional<Manutencao> findById(Long id);
 }

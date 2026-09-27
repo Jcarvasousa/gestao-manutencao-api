@@ -10,12 +10,11 @@ import br.com.joaovitor.gestaomanutencao.exception.RecursoNaoEncontradoException
 import br.com.joaovitor.gestaomanutencao.model.Manutencao;
 import br.com.joaovitor.gestaomanutencao.model.Maquina;
 import br.com.joaovitor.gestaomanutencao.model.StatusManutencao;
-import br.com.joaovitor.gestaomanutencao.model.Tecnico;
 import br.com.joaovitor.gestaomanutencao.model.TipoManutencao;
 import br.com.joaovitor.gestaomanutencao.repository.ManutencaoRepository;
+import br.com.joaovitor.gestaomanutencao.repository.ManutencaoTecnicoRepository;
 import br.com.joaovitor.gestaomanutencao.repository.MaquinaRepository;
 import br.com.joaovitor.gestaomanutencao.repository.ServicoTerceiroRepository;
-import br.com.joaovitor.gestaomanutencao.repository.TecnicoRepository;
 import br.com.joaovitor.gestaomanutencao.specification.ManutencaoSpecification;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -24,7 +23,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @RestController
@@ -33,19 +31,19 @@ public class ManutencaoController {
 
     private final ManutencaoRepository manutencaoRepository;
     private final MaquinaRepository maquinaRepository;
-    private final TecnicoRepository tecnicoRepository;
     private final ServicoTerceiroRepository servicoTerceiroRepository;
+    private final ManutencaoTecnicoRepository manutencaoTecnicoRepository;
 
     public ManutencaoController(
             ManutencaoRepository manutencaoRepository,
             MaquinaRepository maquinaRepository,
-            TecnicoRepository tecnicoRepository,
-            ServicoTerceiroRepository servicoTerceiroRepository
+            ServicoTerceiroRepository servicoTerceiroRepository,
+            ManutencaoTecnicoRepository manutencaoTecnicoRepository
     ) {
         this.manutencaoRepository = manutencaoRepository;
         this.maquinaRepository = maquinaRepository;
-        this.tecnicoRepository = tecnicoRepository;
         this.servicoTerceiroRepository = servicoTerceiroRepository;
+        this.manutencaoTecnicoRepository = manutencaoTecnicoRepository;
     }
 
     @PostMapping
@@ -59,7 +57,6 @@ public class ManutencaoController {
         manutencao.setMaquina(maquina);
         manutencao.setProblemaDescricao(requestDTO.problemaDescricao());
         manutencao.setTipo(requestDTO.tipo());
-        manutencao.setTecnico(buscarTecnico(requestDTO.tecnicoId()));
 
         Manutencao salva = manutencaoRepository.save(manutencao);
 
@@ -163,11 +160,7 @@ public class ManutencaoController {
             );
         }
 
-        if (requestDTO.tecnicoId() != null) {
-            manutencao.setTecnico(buscarTecnico(requestDTO.tecnicoId()));
-        }
-
-        boolean temTecnico = manutencao.getTecnico() != null;
+        boolean temTecnico = manutencaoTecnicoRepository.existsByManutencaoId(id);
         boolean temServicoTerceiro = servicoTerceiroRepository.existsByManutencaoId(id);
 
         if (!temTecnico && !temServicoTerceiro) {
@@ -176,33 +169,13 @@ public class ManutencaoController {
             );
         }
 
-        if (temTecnico && (requestDTO.horasTecnico() == null || requestDTO.horasTecnico().compareTo(BigDecimal.ZERO) <= 0)) {
-            throw new ManutencaoDadosConclusaoIncompletosException(
-                    "As horas trabalhadas pelo técnico são obrigatórias para calcular o custo de mão de obra interna."
-            );
-        }
-
         manutencao.setDescricaoServico(requestDTO.descricaoServico());
         manutencao.setMaquinaLiberadaParaUso(requestDTO.maquinaLiberadaParaUso());
         manutencao.setCondicoesSeguranca(requestDTO.condicoesSeguranca());
-        if (temTecnico) {
-            manutencao.setHorasTecnico(requestDTO.horasTecnico());
-        }
         manutencao.setStatus(StatusManutencao.CONCLUIDA);
         manutencao.setDataConclusao(LocalDateTime.now());
 
         manutencaoRepository.save(manutencao);
         return ResponseEntity.ok(ManutencaoResponseDTO.fromEntity(manutencao));
-    }
-
-    private Tecnico buscarTecnico(Long tecnicoId) {
-        if (tecnicoId == null) {
-            return null;
-        }
-
-        return tecnicoRepository.findById(tecnicoId)
-                .orElseThrow(() -> new RecursoNaoEncontradoException(
-                        "Técnico com ID " + tecnicoId + " não encontrado."
-                ));
     }
 }

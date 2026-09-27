@@ -11,6 +11,7 @@ import br.com.joaovitor.gestaomanutencao.repository.MovimentacaoEstoqueRepositor
 import br.com.joaovitor.gestaomanutencao.repository.OrcamentoMensalRepository;
 import br.com.joaovitor.gestaomanutencao.repository.ServicoTerceiroRepository;
 import br.com.joaovitor.gestaomanutencao.repository.SolicitacaoCompraRepository;
+import br.com.joaovitor.gestaomanutencao.service.CustoManutencaoService;
 import org.openpdf.text.Document;
 import org.openpdf.text.DocumentException;
 import org.openpdf.text.Paragraph;
@@ -38,19 +39,22 @@ public class RelatorioController {
     private final MaquinaRepository maquinaRepository;
     private final SolicitacaoCompraRepository solicitacaoCompraRepository;
     private final OrcamentoMensalRepository orcamentoMensalRepository;
+    private final CustoManutencaoService custoManutencaoService;
 
     public RelatorioController(
             MovimentacaoEstoqueRepository movimentacaoEstoqueRepository,
             ServicoTerceiroRepository servicoTerceiroRepository,
             MaquinaRepository maquinaRepository,
             SolicitacaoCompraRepository solicitacaoCompraRepository,
-            OrcamentoMensalRepository orcamentoMensalRepository
+            OrcamentoMensalRepository orcamentoMensalRepository,
+            CustoManutencaoService custoManutencaoService
     ) {
         this.movimentacaoEstoqueRepository = movimentacaoEstoqueRepository;
         this.servicoTerceiroRepository = servicoTerceiroRepository;
         this.maquinaRepository = maquinaRepository;
         this.solicitacaoCompraRepository = solicitacaoCompraRepository;
         this.orcamentoMensalRepository = orcamentoMensalRepository;
+        this.custoManutencaoService = custoManutencaoService;
     }
 
     @GetMapping("/custo-mensal")
@@ -62,7 +66,8 @@ public class RelatorioController {
         BigDecimal custoPecas = movimentacaoEstoqueRepository.calcularCustoPecasPorMesEAno(mes, ano);
         if (custoPecas == null) custoPecas = BigDecimal.ZERO;
 
-        BigDecimal custoMaoDeObra = servicoTerceiroRepository.calcularCustoMaoDeObraPorMesEAno(mes, ano);
+        BigDecimal custoMaoDeObra = custoManutencaoService
+                .calcularCustoMaoDeObraPorMesEAno(mes, ano);
         if (custoMaoDeObra == null) custoMaoDeObra = BigDecimal.ZERO;
 
         BigDecimal custoTotal = custoPecas.add(custoMaoDeObra);
@@ -87,7 +92,8 @@ public class RelatorioController {
         BigDecimal custoPecas = movimentacaoEstoqueRepository.calcularCustoPecasPorMesEAno(mes, ano);
         if (custoPecas == null) custoPecas = BigDecimal.ZERO;
 
-        BigDecimal custoMaoDeObra = servicoTerceiroRepository.calcularCustoMaoDeObraPorMesEAno(mes, ano);
+        BigDecimal custoMaoDeObra = custoManutencaoService
+                .calcularCustoMaoDeObraPorMesEAno(mes, ano);
         if (custoMaoDeObra == null) custoMaoDeObra = BigDecimal.ZERO;
 
         BigDecimal custoTotal = custoPecas.add(custoMaoDeObra);
@@ -337,7 +343,7 @@ public class RelatorioController {
                 .calcularCustoPecasPorMaquinaMesEAno(maquinaId, mes, ano);
         if (custoPecas == null) custoPecas = BigDecimal.ZERO;
 
-        BigDecimal custoMaoDeObra = servicoTerceiroRepository
+        BigDecimal custoMaoDeObra = custoManutencaoService
                 .calcularCustoMaoDeObraPorMaquinaMesEAno(maquinaId, mes, ano);
         if (custoMaoDeObra == null) custoMaoDeObra = BigDecimal.ZERO;
 
@@ -368,8 +374,8 @@ public class RelatorioController {
                     .calcularCustoPecasPorMaquinaMesEAno(maquinaId, mes, ano);
         if (custoPecas == null) custoPecas = BigDecimal.ZERO;
 
-        BigDecimal custoMaoDeObra = servicoTerceiroRepository
-                    .calcularCustoMaoDeObraPorMaquinaMesEAno(maquinaId, mes, ano);
+        BigDecimal custoMaoDeObra = custoManutencaoService
+                .calcularCustoMaoDeObraPorMaquinaMesEAno(maquinaId, mes, ano);
         if (custoMaoDeObra == null) custoMaoDeObra = BigDecimal.ZERO;
 
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -410,7 +416,7 @@ public class RelatorioController {
                 .calcularCustoPecasPorMaquinaEAno(maquinaId, ano);
         if (custoPecas == null) custoPecas = BigDecimal.ZERO;
 
-        BigDecimal custoMaoDeObra = servicoTerceiroRepository
+        BigDecimal custoMaoDeObra = custoManutencaoService
                 .calcularCustoMaoDeObraPorMaquinaEAno(maquinaId, ano);
         if (custoMaoDeObra == null) custoMaoDeObra = BigDecimal.ZERO;
 
@@ -440,8 +446,8 @@ public class RelatorioController {
                     .calcularCustoPecasPorMaquinaEAno(maquinaId, ano);
         if (custoPecas == null) custoPecas = BigDecimal.ZERO;
 
-        BigDecimal custoMaoDeObra = servicoTerceiroRepository
-                    .calcularCustoMaoDeObraPorMaquinaEAno(maquinaId, ano);
+        BigDecimal custoMaoDeObra = custoManutencaoService
+                .calcularCustoMaoDeObraPorMaquinaEAno(maquinaId, ano);
         if (custoMaoDeObra == null) custoMaoDeObra = BigDecimal.ZERO;
 
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -480,7 +486,7 @@ public class RelatorioController {
                 .calcularCustoPecasPorMaquinaTotal(maquinaId);
         if (custoPecas == null) custoPecas = BigDecimal.ZERO;
 
-        BigDecimal custoMaoDeObra = servicoTerceiroRepository
+        BigDecimal custoMaoDeObra = custoManutencaoService
                 .calcularCustoMaoDeObraPorMaquinaTotal(maquinaId);
         if (custoMaoDeObra == null) custoMaoDeObra = BigDecimal.ZERO;
 
@@ -509,8 +515,8 @@ public class RelatorioController {
                     .calcularCustoPecasPorMaquinaTotal(maquinaId);
         if (custoPecas == null) custoPecas = BigDecimal.ZERO;
 
-        BigDecimal custoMaoDeObra = servicoTerceiroRepository
-                    .calcularCustoMaoDeObraPorMaquinaTotal(maquinaId);
+        BigDecimal custoMaoDeObra = custoManutencaoService
+                .calcularCustoMaoDeObraPorMaquinaTotal(maquinaId);
         if (custoMaoDeObra == null) custoMaoDeObra = BigDecimal.ZERO;
 
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();

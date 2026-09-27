@@ -15,11 +15,8 @@ public record ManutencaoResponseDTO(
         TipoManutencao tipo,
         String descricaoServico,
         StatusManutencao status,
-        Long tecnicoId,
-        String tecnicoNome,
         Boolean maquinaLiberadaParaUso,
         String condicoesSeguranca,
-        BigDecimal horasTecnico,
         LocalDateTime dataAbertura,
         LocalDateTime dataInicio,
         LocalDateTime dataConclusao
@@ -33,11 +30,8 @@ public record ManutencaoResponseDTO(
                 entity.getTipo(),
                 entity.getDescricaoServico(),
                 entity.getStatus(),
-                entity.getTecnico() == null ? null : entity.getTecnico().getId(),
-                entity.getTecnico() == null ? null : entity.getTecnico().getNome(),
                 entity.getMaquinaLiberadaParaUso(),
                 entity.getCondicoesSeguranca(),
-                entity.getHorasTecnico(),
                 entity.getDataAbertura(),
                 entity.getDataInicio(),
                 entity.getDataConclusao()
