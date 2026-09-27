@@ -272,10 +272,17 @@ public class RelatorioController {
             @RequestParam Integer mes,
             @RequestParam Integer ano
     ) {
-        BigDecimal valorGasto = solicitacaoCompraRepository.calcularGastoRealizadoPorMesEAno(mes, ano);
-        if (valorGasto == null) valorGasto = BigDecimal.ZERO;
+        BigDecimal valorGastoPecas = solicitacaoCompraRepository.calcularGastoRealizadoPorMesEAno(mes, ano);
+        if (valorGastoPecas == null) valorGastoPecas = BigDecimal.ZERO;
 
-        return ResponseEntity.ok(new RelatorioGastoRealizadoDTO(mes, ano, valorGasto));
+        BigDecimal valorGastoServicoTerceiro = servicoTerceiroRepository.somarValorServicoTerceiroPorMesEAno(mes, ano);
+        if (valorGastoServicoTerceiro == null) valorGastoServicoTerceiro = BigDecimal.ZERO;
+
+        BigDecimal valorGastoTotal = valorGastoPecas.add(valorGastoServicoTerceiro);
+
+        return ResponseEntity.ok(new RelatorioGastoRealizadoDTO(
+                mes, ano, valorGastoPecas, valorGastoServicoTerceiro, valorGastoTotal
+        ));
     }
 
     @GetMapping("/gasto-realizado/pdf")
@@ -284,8 +291,13 @@ public class RelatorioController {
             @RequestParam Integer mes,
             @RequestParam Integer ano
     ) throws DocumentException {
-        BigDecimal valorGasto = solicitacaoCompraRepository.calcularGastoRealizadoPorMesEAno(mes, ano);
-        if (valorGasto == null) valorGasto = BigDecimal.ZERO;
+        BigDecimal valorGastoPecas = solicitacaoCompraRepository.calcularGastoRealizadoPorMesEAno(mes, ano);
+        if (valorGastoPecas == null) valorGastoPecas = BigDecimal.ZERO;
+
+        BigDecimal valorGastoServicoTerceiro = servicoTerceiroRepository.somarValorServicoTerceiroPorMesEAno(mes, ano);
+        if (valorGastoServicoTerceiro == null) valorGastoServicoTerceiro = BigDecimal.ZERO;
+
+        BigDecimal valorGastoTotal = valorGastoPecas.add(valorGastoServicoTerceiro);
 
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         Document document = new Document();
@@ -294,7 +306,9 @@ public class RelatorioController {
         document.add(new Paragraph("Relatório de Gasto Realizado"));
         document.add(new Paragraph("Mês: " + mes));
         document.add(new Paragraph("Ano: " + ano));
-        document.add(new Paragraph("Valor Gasto: " + valorGasto));
+        document.add(new Paragraph("Valor Gasto em Peças: " + valorGastoPecas));
+        document.add(new Paragraph("Valor Gasto em Serviço de Terceiro: " + valorGastoServicoTerceiro));
+        document.add(new Paragraph("Valor Gasto Total: " + valorGastoTotal));
         document.close();
 
         HttpHeaders headers = new HttpHeaders();
