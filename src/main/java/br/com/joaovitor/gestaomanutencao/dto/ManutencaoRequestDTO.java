@@ -11,6 +11,6 @@ public record ManutencaoRequestDTO(
         String problemaDescricao,
         @NotNull
         TipoManutencao tipo,
-        String tecnicoResponsavel
+        Long tecnicoId
 ) {
 }

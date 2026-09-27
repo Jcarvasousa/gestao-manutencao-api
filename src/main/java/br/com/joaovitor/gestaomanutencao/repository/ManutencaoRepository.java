@@ -6,12 +6,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
-import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
-import org.springframework.data.repository.query.Param;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -22,56 +19,10 @@ public interface ManutencaoRepository extends JpaRepository<Manutencao, Long>, J
     List<Manutencao> findByStatus(StatusManutencao status);
 
     @Override
-    @EntityGraph(attributePaths = "maquina")
+    @EntityGraph(attributePaths = {"maquina", "tecnico"})
     Page<Manutencao> findAll(Specification<Manutencao> spec, Pageable pageable);
 
     @Override
-    @EntityGraph(attributePaths = "maquina")
+    @EntityGraph(attributePaths = {"maquina", "tecnico"})
     Optional<Manutencao> findById(Long id);
-
-    @Query("""
-            SELECT COALESCE(SUM(m.custoMaoDeObra), 0)
-            FROM Manutencao m
-            WHERE m.status = br.com.joaovitor.gestaomanutencao.model.StatusManutencao.CONCLUIDA
-              AND MONTH(m.dataConclusao) = :mes
-              AND YEAR(m.dataConclusao) = :ano
-            """)
-    BigDecimal calcularCustoMaoDeObraPorMesEAno(
-            @Param("mes") Integer mes,
-            @Param("ano") Integer ano
-    );
-
-    @Query("""
-            SELECT COALESCE(SUM(m.custoMaoDeObra), 0)
-            FROM Manutencao m
-            WHERE m.status = br.com.joaovitor.gestaomanutencao.model.StatusManutencao.CONCLUIDA
-              AND m.maquina.id = :maquinaId
-              AND MONTH(m.dataConclusao) = :mes
-              AND YEAR(m.dataConclusao) = :ano
-            """)
-    BigDecimal calcularCustoMaoDeObraPorMaquinaMesEAno(
-            @Param("maquinaId") Long maquinaId,
-            @Param("mes") Integer mes,
-            @Param("ano") Integer ano
-    );
-
-    @Query("""
-            SELECT COALESCE(SUM(m.custoMaoDeObra), 0)
-            FROM Manutencao m
-            WHERE m.status = br.com.joaovitor.gestaomanutencao.model.StatusManutencao.CONCLUIDA
-              AND m.maquina.id = :maquinaId
-              AND YEAR(m.dataConclusao) = :ano
-            """)
-    BigDecimal calcularCustoMaoDeObraPorMaquinaEAno(
-            @Param("maquinaId") Long maquinaId,
-            @Param("ano") Integer ano
-    );
-
-    @Query("""
-            SELECT COALESCE(SUM(m.custoMaoDeObra), 0)
-            FROM Manutencao m
-            WHERE m.status = br.com.joaovitor.gestaomanutencao.model.StatusManutencao.CONCLUIDA
-              AND m.maquina.id = :maquinaId
-            """)
-    BigDecimal calcularCustoMaoDeObraPorMaquinaTotal(@Param("maquinaId") Long maquinaId);
 }

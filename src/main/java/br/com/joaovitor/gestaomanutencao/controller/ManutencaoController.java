@@ -3,14 +3,19 @@ package br.com.joaovitor.gestaomanutencao.controller;
 import br.com.joaovitor.gestaomanutencao.dto.ManutencaoRequestDTO;
 import br.com.joaovitor.gestaomanutencao.dto.ManutencaoConcluirRequestDTO;
 import br.com.joaovitor.gestaomanutencao.dto.ManutencaoResponseDTO;
+import br.com.joaovitor.gestaomanutencao.exception.ManutencaoDadosConclusaoIncompletosException;
 import br.com.joaovitor.gestaomanutencao.exception.ManutencaoNaoEstaAbertaException;
+import br.com.joaovitor.gestaomanutencao.exception.ManutencaoSemResponsavelException;
 import br.com.joaovitor.gestaomanutencao.exception.RecursoNaoEncontradoException;
 import br.com.joaovitor.gestaomanutencao.model.Manutencao;
 import br.com.joaovitor.gestaomanutencao.model.Maquina;
 import br.com.joaovitor.gestaomanutencao.model.StatusManutencao;
+import br.com.joaovitor.gestaomanutencao.model.Tecnico;
 import br.com.joaovitor.gestaomanutencao.model.TipoManutencao;
 import br.com.joaovitor.gestaomanutencao.repository.ManutencaoRepository;
 import br.com.joaovitor.gestaomanutencao.repository.MaquinaRepository;
+import br.com.joaovitor.gestaomanutencao.repository.ServicoTerceiroRepository;
+import br.com.joaovitor.gestaomanutencao.repository.TecnicoRepository;
 import br.com.joaovitor.gestaomanutencao.specification.ManutencaoSpecification;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -28,10 +33,19 @@ public class ManutencaoController {
 
     private final ManutencaoRepository manutencaoRepository;
     private final MaquinaRepository maquinaRepository;
+    private final TecnicoRepository tecnicoRepository;
+    private final ServicoTerceiroRepository servicoTerceiroRepository;
 
-    public ManutencaoController(ManutencaoRepository manutencaoRepository, MaquinaRepository maquinaRepository) {
+    public ManutencaoController(
+            ManutencaoRepository manutencaoRepository,
+            MaquinaRepository maquinaRepository,
+            TecnicoRepository tecnicoRepository,
+            ServicoTerceiroRepository servicoTerceiroRepository
+    ) {
         this.manutencaoRepository = manutencaoRepository;
         this.maquinaRepository = maquinaRepository;
+        this.tecnicoRepository = tecnicoRepository;
+        this.servicoTerceiroRepository = servicoTerceiroRepository;
     }
 
     @PostMapping
@@ -45,7 +59,7 @@ public class ManutencaoController {
         manutencao.setMaquina(maquina);
         manutencao.setProblemaDescricao(requestDTO.problemaDescricao());
         manutencao.setTipo(requestDTO.tipo());
-        manutencao.setTecnicoResponsavel(requestDTO.tecnicoResponsavel());
+        manutencao.setTecnico(buscarTecnico(requestDTO.tecnicoId()));
 
         Manutencao salva = manutencaoRepository.save(manutencao);
 
@@ -131,14 +145,64 @@ public class ManutencaoController {
             );
         }
 
+        if (requestDTO.descricaoServico() == null || requestDTO.descricaoServico().isBlank()) {
+            throw new ManutencaoDadosConclusaoIncompletosException(
+                    "A descrição do serviço executado é obrigatória para concluir a manutenção."
+            );
+        }
+
+        if (requestDTO.maquinaLiberadaParaUso() == null) {
+            throw new ManutencaoDadosConclusaoIncompletosException(
+                    "É obrigatório informar se a máquina foi liberada para uso para concluir a manutenção."
+            );
+        }
+
+        if (requestDTO.condicoesSeguranca() == null || requestDTO.condicoesSeguranca().isBlank()) {
+            throw new ManutencaoDadosConclusaoIncompletosException(
+                    "As condições de segurança (NR12) são obrigatórias para concluir a manutenção."
+            );
+        }
+
+        if (requestDTO.tecnicoId() != null) {
+            manutencao.setTecnico(buscarTecnico(requestDTO.tecnicoId()));
+        }
+
+        boolean temTecnico = manutencao.getTecnico() != null;
+        boolean temServicoTerceiro = servicoTerceiroRepository.existsByManutencaoId(id);
+
+        if (!temTecnico && !temServicoTerceiro) {
+            throw new ManutencaoSemResponsavelException(
+                    "A manutenção precisa de um técnico responsável ou de um serviço de terceiro vinculado para ser concluída."
+            );
+        }
+
+        if (temTecnico && (requestDTO.horasTecnico() == null || requestDTO.horasTecnico().compareTo(BigDecimal.ZERO) <= 0)) {
+            throw new ManutencaoDadosConclusaoIncompletosException(
+                    "As horas trabalhadas pelo técnico são obrigatórias para calcular o custo de mão de obra interna."
+            );
+        }
+
         manutencao.setDescricaoServico(requestDTO.descricaoServico());
-        manutencao.setCustoMaoDeObra(requestDTO.custoMaoDeObra() == null
-                ? BigDecimal.ZERO
-                : requestDTO.custoMaoDeObra());
+        manutencao.setMaquinaLiberadaParaUso(requestDTO.maquinaLiberadaParaUso());
+        manutencao.setCondicoesSeguranca(requestDTO.condicoesSeguranca());
+        if (temTecnico) {
+            manutencao.setHorasTecnico(requestDTO.horasTecnico());
+        }
         manutencao.setStatus(StatusManutencao.CONCLUIDA);
         manutencao.setDataConclusao(LocalDateTime.now());
 
         manutencaoRepository.save(manutencao);
         return ResponseEntity.ok(ManutencaoResponseDTO.fromEntity(manutencao));
+    }
+
+    private Tecnico buscarTecnico(Long tecnicoId) {
+        if (tecnicoId == null) {
+            return null;
+        }
+
+        return tecnicoRepository.findById(tecnicoId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException(
+                        "Técnico com ID " + tecnicoId + " não encontrado."
+                ));
     }
 }

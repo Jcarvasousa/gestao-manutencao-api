@@ -6,10 +6,10 @@ import br.com.joaovitor.gestaomanutencao.dto.RelatorioGastoRealizadoDTO;
 import br.com.joaovitor.gestaomanutencao.dto.RelatorioOrcamentoAnualDTO;
 import br.com.joaovitor.gestaomanutencao.dto.RelatorioOrcamentoMensalDTO;
 import br.com.joaovitor.gestaomanutencao.exception.RecursoNaoEncontradoException;
-import br.com.joaovitor.gestaomanutencao.repository.ManutencaoRepository;
 import br.com.joaovitor.gestaomanutencao.repository.MaquinaRepository;
 import br.com.joaovitor.gestaomanutencao.repository.MovimentacaoEstoqueRepository;
 import br.com.joaovitor.gestaomanutencao.repository.OrcamentoMensalRepository;
+import br.com.joaovitor.gestaomanutencao.repository.ServicoTerceiroRepository;
 import br.com.joaovitor.gestaomanutencao.repository.SolicitacaoCompraRepository;
 import org.openpdf.text.Document;
 import org.openpdf.text.DocumentException;
@@ -34,20 +34,20 @@ import java.util.List;
 public class RelatorioController {
 
     private final MovimentacaoEstoqueRepository movimentacaoEstoqueRepository;
-    private final ManutencaoRepository manutencaoRepository;
+    private final ServicoTerceiroRepository servicoTerceiroRepository;
     private final MaquinaRepository maquinaRepository;
     private final SolicitacaoCompraRepository solicitacaoCompraRepository;
     private final OrcamentoMensalRepository orcamentoMensalRepository;
 
     public RelatorioController(
             MovimentacaoEstoqueRepository movimentacaoEstoqueRepository,
-            ManutencaoRepository manutencaoRepository,
+            ServicoTerceiroRepository servicoTerceiroRepository,
             MaquinaRepository maquinaRepository,
             SolicitacaoCompraRepository solicitacaoCompraRepository,
             OrcamentoMensalRepository orcamentoMensalRepository
     ) {
         this.movimentacaoEstoqueRepository = movimentacaoEstoqueRepository;
-        this.manutencaoRepository = manutencaoRepository;
+        this.servicoTerceiroRepository = servicoTerceiroRepository;
         this.maquinaRepository = maquinaRepository;
         this.solicitacaoCompraRepository = solicitacaoCompraRepository;
         this.orcamentoMensalRepository = orcamentoMensalRepository;
@@ -62,7 +62,7 @@ public class RelatorioController {
         BigDecimal custoPecas = movimentacaoEstoqueRepository.calcularCustoPecasPorMesEAno(mes, ano);
         if (custoPecas == null) custoPecas = BigDecimal.ZERO;
 
-        BigDecimal custoMaoDeObra = manutencaoRepository.calcularCustoMaoDeObraPorMesEAno(mes, ano);
+        BigDecimal custoMaoDeObra = servicoTerceiroRepository.calcularCustoMaoDeObraPorMesEAno(mes, ano);
         if (custoMaoDeObra == null) custoMaoDeObra = BigDecimal.ZERO;
 
         BigDecimal custoTotal = custoPecas.add(custoMaoDeObra);
@@ -87,7 +87,7 @@ public class RelatorioController {
         BigDecimal custoPecas = movimentacaoEstoqueRepository.calcularCustoPecasPorMesEAno(mes, ano);
         if (custoPecas == null) custoPecas = BigDecimal.ZERO;
 
-        BigDecimal custoMaoDeObra = manutencaoRepository.calcularCustoMaoDeObraPorMesEAno(mes, ano);
+        BigDecimal custoMaoDeObra = servicoTerceiroRepository.calcularCustoMaoDeObraPorMesEAno(mes, ano);
         if (custoMaoDeObra == null) custoMaoDeObra = BigDecimal.ZERO;
 
         BigDecimal custoTotal = custoPecas.add(custoMaoDeObra);
@@ -323,7 +323,7 @@ public class RelatorioController {
                 .calcularCustoPecasPorMaquinaMesEAno(maquinaId, mes, ano);
         if (custoPecas == null) custoPecas = BigDecimal.ZERO;
 
-        BigDecimal custoMaoDeObra = manutencaoRepository
+        BigDecimal custoMaoDeObra = servicoTerceiroRepository
                 .calcularCustoMaoDeObraPorMaquinaMesEAno(maquinaId, mes, ano);
         if (custoMaoDeObra == null) custoMaoDeObra = BigDecimal.ZERO;
 
@@ -354,7 +354,7 @@ public class RelatorioController {
                     .calcularCustoPecasPorMaquinaMesEAno(maquinaId, mes, ano);
         if (custoPecas == null) custoPecas = BigDecimal.ZERO;
 
-        BigDecimal custoMaoDeObra = manutencaoRepository
+        BigDecimal custoMaoDeObra = servicoTerceiroRepository
                     .calcularCustoMaoDeObraPorMaquinaMesEAno(maquinaId, mes, ano);
         if (custoMaoDeObra == null) custoMaoDeObra = BigDecimal.ZERO;
 
@@ -396,7 +396,7 @@ public class RelatorioController {
                 .calcularCustoPecasPorMaquinaEAno(maquinaId, ano);
         if (custoPecas == null) custoPecas = BigDecimal.ZERO;
 
-        BigDecimal custoMaoDeObra = manutencaoRepository
+        BigDecimal custoMaoDeObra = servicoTerceiroRepository
                 .calcularCustoMaoDeObraPorMaquinaEAno(maquinaId, ano);
         if (custoMaoDeObra == null) custoMaoDeObra = BigDecimal.ZERO;
 
@@ -426,7 +426,7 @@ public class RelatorioController {
                     .calcularCustoPecasPorMaquinaEAno(maquinaId, ano);
         if (custoPecas == null) custoPecas = BigDecimal.ZERO;
 
-        BigDecimal custoMaoDeObra = manutencaoRepository
+        BigDecimal custoMaoDeObra = servicoTerceiroRepository
                     .calcularCustoMaoDeObraPorMaquinaEAno(maquinaId, ano);
         if (custoMaoDeObra == null) custoMaoDeObra = BigDecimal.ZERO;
 
@@ -466,7 +466,7 @@ public class RelatorioController {
                 .calcularCustoPecasPorMaquinaTotal(maquinaId);
         if (custoPecas == null) custoPecas = BigDecimal.ZERO;
 
-        BigDecimal custoMaoDeObra = manutencaoRepository
+        BigDecimal custoMaoDeObra = servicoTerceiroRepository
                 .calcularCustoMaoDeObraPorMaquinaTotal(maquinaId);
         if (custoMaoDeObra == null) custoMaoDeObra = BigDecimal.ZERO;
 
@@ -495,7 +495,7 @@ public class RelatorioController {
                     .calcularCustoPecasPorMaquinaTotal(maquinaId);
         if (custoPecas == null) custoPecas = BigDecimal.ZERO;
 
-        BigDecimal custoMaoDeObra = manutencaoRepository
+        BigDecimal custoMaoDeObra = servicoTerceiroRepository
                     .calcularCustoMaoDeObraPorMaquinaTotal(maquinaId);
         if (custoMaoDeObra == null) custoMaoDeObra = BigDecimal.ZERO;
 

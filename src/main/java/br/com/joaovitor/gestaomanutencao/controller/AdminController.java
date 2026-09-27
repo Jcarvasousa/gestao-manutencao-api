@@ -75,13 +75,13 @@ public class AdminController {
         Peca pec004 = criarPeca("PEC-004", "Eletrodo de Solda", "Consumiveis", UnidadeMedida.KG, "Prateleira D1", 3, 10, "25.00");
 
         Manutencao manutencao1 = criarManutencao(
-                maq001, "Ruido anormal no rolamento do eixo principal", TipoManutencao.CORRETIVA, "Carlos Silva"
+                maq001, "Ruido anormal no rolamento do eixo principal", TipoManutencao.CORRETIVA
         );
         Manutencao manutencao2 = criarManutencao(
-                maq002, "Troca de oleo hidraulico programada", TipoManutencao.PREVENTIVA, "Ana Torres"
+                maq002, "Troca de oleo hidraulico programada", TipoManutencao.PREVENTIVA
         );
         Manutencao manutencao3 = criarManutencao(
-                maq003, "Eletrodo insuficiente para concluir lote de producao", TipoManutencao.CORRETIVA, "Carlos Silva"
+                maq003, "Eletrodo insuficiente para concluir lote de producao", TipoManutencao.CORRETIVA
         );
 
         movimentacaoEstoqueService.registrarSaida(
@@ -89,10 +89,10 @@ public class AdminController {
         );
 
         concluirManutencao(
-                manutencao1, "Substituido rolamento desgastado, lubrificacao geral do eixo", "180.00"
+                manutencao1, "Substituido rolamento desgastado, lubrificacao geral do eixo"
         );
         concluirManutencao(
-                manutencao2, "Oleo hidraulico trocado conforme cronograma", "90.00"
+                manutencao2, "Oleo hidraulico trocado conforme cronograma"
         );
 
         solicitacaoCompraService.criar(pec002.getId(), null, 10, "Distribuidora Industrial SP", null);
@@ -138,19 +138,17 @@ public class AdminController {
     }
 
     private Manutencao criarManutencao(
-            Maquina maquina, String problemaDescricao, TipoManutencao tipo, String tecnicoResponsavel
+            Maquina maquina, String problemaDescricao, TipoManutencao tipo
     ) {
         Manutencao manutencao = new Manutencao();
         manutencao.setMaquina(maquina);
         manutencao.setProblemaDescricao(problemaDescricao);
         manutencao.setTipo(tipo);
-        manutencao.setTecnicoResponsavel(tecnicoResponsavel);
         return manutencaoRepository.save(manutencao);
     }
 
-    private void concluirManutencao(Manutencao manutencao, String descricaoServico, String custoMaoDeObra) {
+    private void concluirManutencao(Manutencao manutencao, String descricaoServico) {
         manutencao.setDescricaoServico(descricaoServico);
-        manutencao.setCustoMaoDeObra(new BigDecimal(custoMaoDeObra));
         manutencao.setStatus(StatusManutencao.CONCLUIDA);
         manutencao.setDataConclusao(LocalDateTime.now());
         manutencaoRepository.save(manutencao);

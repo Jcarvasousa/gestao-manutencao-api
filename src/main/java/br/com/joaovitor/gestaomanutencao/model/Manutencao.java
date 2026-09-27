@@ -45,13 +45,19 @@ public class Manutencao {
 
     private String descricaoServico;
 
-    private BigDecimal custoMaoDeObra;
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private StatusManutencao status = StatusManutencao.ABERTA;
 
-    private String tecnicoResponsavel;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tecnico_id", nullable = true)
+    private Tecnico tecnico;
+
+    private Boolean maquinaLiberadaParaUso;
+
+    private String condicoesSeguranca;
+
+    private BigDecimal horasTecnico;
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime dataAbertura;
