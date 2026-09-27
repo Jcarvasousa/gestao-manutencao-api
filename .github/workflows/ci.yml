@@ -36,6 +36,9 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
+      - name: Garantir permissão de execução no Maven Wrapper
+        run: chmod +x ./mvnw
+
       - name: Build e testes (Maven Wrapper)
         run: ./mvnw clean test
         env:
