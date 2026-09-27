@@ -1,6 +1,7 @@
 package br.com.joaovitor.gestaomanutencao.dto;
 
 import br.com.joaovitor.gestaomanutencao.model.Peca;
+import br.com.joaovitor.gestaomanutencao.model.UnidadeMedida;
 
 import java.math.BigDecimal;
 
@@ -9,7 +10,7 @@ public record PecaResponseDTO(
         String codigo,
         String nome,
         String categoria,
-        String unidadeMedida,
+        UnidadeMedida unidadeMedida,
         String localizacaoFisica,
         Integer quantidadeAtual,
         Integer estoqueMinimo,

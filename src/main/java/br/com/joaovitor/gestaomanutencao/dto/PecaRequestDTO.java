@@ -1,5 +1,6 @@
 package br.com.joaovitor.gestaomanutencao.dto;
 
+import br.com.joaovitor.gestaomanutencao.model.UnidadeMedida;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -13,7 +14,7 @@ public record PecaRequestDTO(
         @NotBlank
         String nome,
         String categoria,
-        String unidadeMedida,
+        UnidadeMedida unidadeMedida,
         String localizacaoFisica,
         @NotNull
         @Min(0)

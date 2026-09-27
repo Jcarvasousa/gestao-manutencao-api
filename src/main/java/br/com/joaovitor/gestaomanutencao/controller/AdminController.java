@@ -6,6 +6,7 @@ import br.com.joaovitor.gestaomanutencao.model.Peca;
 import br.com.joaovitor.gestaomanutencao.model.Setor;
 import br.com.joaovitor.gestaomanutencao.model.StatusManutencao;
 import br.com.joaovitor.gestaomanutencao.model.TipoManutencao;
+import br.com.joaovitor.gestaomanutencao.model.UnidadeMedida;
 import br.com.joaovitor.gestaomanutencao.repository.ManutencaoRepository;
 import br.com.joaovitor.gestaomanutencao.repository.MaquinaRepository;
 import br.com.joaovitor.gestaomanutencao.repository.PecaRepository;
@@ -68,10 +69,10 @@ public class AdminController {
         Maquina maq002 = criarMaquina("MAQ-002", "Prensa Hidraulica 200T", setorCorteDobra);
         Maquina maq003 = criarMaquina("MAQ-003", "Solda MIG Automatica", setorSolda);
 
-        Peca pec001 = criarPeca("PEC-001", "Rolamento 6205", "Rolamentos", "un", "Prateleira A1", 15, 5, "45.90");
-        Peca pec002 = criarPeca("PEC-002", "Correia Dentada", "Transmissao", "un", "Prateleira B2", 2, 5, "89.50");
-        criarPeca("PEC-003", "Oleo Hidraulico ISO 68", "Lubrificantes", "L", "Deposito C", 40, 20, "18.30");
-        Peca pec004 = criarPeca("PEC-004", "Eletrodo de Solda", "Consumiveis", "kg", "Prateleira D1", 3, 10, "25.00");
+        Peca pec001 = criarPeca("PEC-001", "Rolamento 6205", "Rolamentos", UnidadeMedida.UN, "Prateleira A1", 15, 5, "45.90");
+        Peca pec002 = criarPeca("PEC-002", "Correia Dentada", "Transmissao", UnidadeMedida.UN, "Prateleira B2", 2, 5, "89.50");
+        criarPeca("PEC-003", "Oleo Hidraulico ISO 68", "Lubrificantes", UnidadeMedida.L, "Deposito C", 40, 20, "18.30");
+        Peca pec004 = criarPeca("PEC-004", "Eletrodo de Solda", "Consumiveis", UnidadeMedida.KG, "Prateleira D1", 3, 10, "25.00");
 
         Manutencao manutencao1 = criarManutencao(
                 maq001, "Ruido anormal no rolamento do eixo principal", TipoManutencao.CORRETIVA, "Carlos Silva"
@@ -118,7 +119,7 @@ public class AdminController {
             String codigo,
             String nome,
             String categoria,
-            String unidadeMedida,
+            UnidadeMedida unidadeMedida,
             String localizacaoFisica,
             int quantidadeAtual,
             int estoqueMinimo,
