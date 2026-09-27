@@ -8,6 +8,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 import java.util.Optional;
@@ -25,4 +26,23 @@ public interface ManutencaoRepository extends JpaRepository<Manutencao, Long>, J
     @Override
     @EntityGraph(attributePaths = "maquina")
     Optional<Manutencao> findById(Long id);
+
+    @Query("""
+            SELECT COUNT(m)
+            FROM Manutencao m
+            WHERE m.status NOT IN (
+                br.com.joaovitor.gestaomanutencao.model.StatusManutencao.CONCLUIDA,
+                br.com.joaovitor.gestaomanutencao.model.StatusManutencao.CANCELADA
+            )
+            """)
+    Long contarBacklog();
+
+    @Query(value = """
+            SELECT AVG(EXTRACT(EPOCH FROM (data_conclusao - data_inicio)) / 3600)
+            FROM manutencao
+            WHERE tipo = 'CORRETIVA'
+              AND status = 'CONCLUIDA'
+              AND data_inicio IS NOT NULL
+            """, nativeQuery = true)
+    Double calcularMttrHoras();
 }

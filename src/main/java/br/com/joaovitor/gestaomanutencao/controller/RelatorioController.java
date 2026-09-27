@@ -4,12 +4,14 @@ import br.com.joaovitor.gestaomanutencao.dto.RelatorioCustoMensalDTO;
 import br.com.joaovitor.gestaomanutencao.dto.RelatorioCustoMaquinaDTO;
 import br.com.joaovitor.gestaomanutencao.dto.RelatorioCustoMaquinasResponseDTO;
 import br.com.joaovitor.gestaomanutencao.dto.RelatorioGastoRealizadoDTO;
+import br.com.joaovitor.gestaomanutencao.dto.RelatorioKpisDTO;
 import br.com.joaovitor.gestaomanutencao.dto.RelatorioOrcamentoAnualDTO;
 import br.com.joaovitor.gestaomanutencao.dto.RelatorioOrcamentoMensalDTO;
 import br.com.joaovitor.gestaomanutencao.exception.RecursoNaoEncontradoException;
 import br.com.joaovitor.gestaomanutencao.exception.RelatorioParametrosInvalidosException;
 import br.com.joaovitor.gestaomanutencao.model.Maquina;
 import br.com.joaovitor.gestaomanutencao.repository.MaquinaRepository;
+import br.com.joaovitor.gestaomanutencao.repository.ManutencaoRepository;
 import br.com.joaovitor.gestaomanutencao.repository.MovimentacaoEstoqueRepository;
 import br.com.joaovitor.gestaomanutencao.repository.OrcamentoMensalRepository;
 import br.com.joaovitor.gestaomanutencao.repository.ServicoTerceiroRepository;
@@ -44,6 +46,7 @@ public class RelatorioController {
     private final SolicitacaoCompraRepository solicitacaoCompraRepository;
     private final OrcamentoMensalRepository orcamentoMensalRepository;
     private final CustoManutencaoService custoManutencaoService;
+    private final ManutencaoRepository manutencaoRepository;
 
     public RelatorioController(
             MovimentacaoEstoqueRepository movimentacaoEstoqueRepository,
@@ -51,7 +54,8 @@ public class RelatorioController {
             MaquinaRepository maquinaRepository,
             SolicitacaoCompraRepository solicitacaoCompraRepository,
             OrcamentoMensalRepository orcamentoMensalRepository,
-            CustoManutencaoService custoManutencaoService
+            CustoManutencaoService custoManutencaoService,
+            ManutencaoRepository manutencaoRepository
     ) {
         this.movimentacaoEstoqueRepository = movimentacaoEstoqueRepository;
         this.servicoTerceiroRepository = servicoTerceiroRepository;
@@ -59,6 +63,20 @@ public class RelatorioController {
         this.solicitacaoCompraRepository = solicitacaoCompraRepository;
         this.orcamentoMensalRepository = orcamentoMensalRepository;
         this.custoManutencaoService = custoManutencaoService;
+        this.manutencaoRepository = manutencaoRepository;
+    }
+
+    @GetMapping("/kpis")
+    @Transactional(readOnly = true)
+    public ResponseEntity<RelatorioKpisDTO> kpis() {
+        Long backlogQuantidade = manutencaoRepository.contarBacklog();
+
+        Double mttrHorasBruto = manutencaoRepository.calcularMttrHoras();
+        BigDecimal mttrHoras = mttrHorasBruto == null
+                ? null
+                : BigDecimal.valueOf(mttrHorasBruto).setScale(2, RoundingMode.HALF_UP);
+
+        return ResponseEntity.ok(new RelatorioKpisDTO(backlogQuantidade, mttrHoras));
     }
 
     @GetMapping("/custo-mensal")
