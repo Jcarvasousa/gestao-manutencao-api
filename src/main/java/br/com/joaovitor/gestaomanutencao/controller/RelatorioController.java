@@ -2,10 +2,13 @@ package br.com.joaovitor.gestaomanutencao.controller;
 
 import br.com.joaovitor.gestaomanutencao.dto.RelatorioCustoMensalDTO;
 import br.com.joaovitor.gestaomanutencao.dto.RelatorioCustoMaquinaDTO;
+import br.com.joaovitor.gestaomanutencao.dto.RelatorioCustoMaquinasResponseDTO;
 import br.com.joaovitor.gestaomanutencao.dto.RelatorioGastoRealizadoDTO;
 import br.com.joaovitor.gestaomanutencao.dto.RelatorioOrcamentoAnualDTO;
 import br.com.joaovitor.gestaomanutencao.dto.RelatorioOrcamentoMensalDTO;
 import br.com.joaovitor.gestaomanutencao.exception.RecursoNaoEncontradoException;
+import br.com.joaovitor.gestaomanutencao.exception.RelatorioParametrosInvalidosException;
+import br.com.joaovitor.gestaomanutencao.model.Maquina;
 import br.com.joaovitor.gestaomanutencao.repository.MaquinaRepository;
 import br.com.joaovitor.gestaomanutencao.repository.MovimentacaoEstoqueRepository;
 import br.com.joaovitor.gestaomanutencao.repository.OrcamentoMensalRepository;
@@ -28,6 +31,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -538,5 +542,124 @@ public class RelatorioController {
         return ResponseEntity.ok()
                     .headers(headers)
                     .body(outputStream.toByteArray());
+    }
+
+    @GetMapping("/custo-maquinas")
+    @Transactional(readOnly = true)
+    public ResponseEntity<RelatorioCustoMaquinasResponseDTO> custoMaquinas(
+            @RequestParam List<Long> maquinaIds,
+            @RequestParam(required = false) Integer mes,
+            @RequestParam(required = false) Integer ano
+    ) {
+        List<RelatorioCustoMaquinaDTO> maquinas = calcularRelatorioCustoMaquinas(maquinaIds, mes, ano);
+
+        BigDecimal totalGeral = maquinas.stream()
+                .map(RelatorioCustoMaquinaDTO::custoTotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return ResponseEntity.ok(new RelatorioCustoMaquinasResponseDTO(maquinas, totalGeral));
+    }
+
+    @GetMapping("/custo-maquinas/pdf")
+    @Transactional(readOnly = true)
+    public ResponseEntity<byte[]> custoMaquinasPdf(
+            @RequestParam List<Long> maquinaIds,
+            @RequestParam(required = false) Integer mes,
+            @RequestParam(required = false) Integer ano
+    ) throws DocumentException {
+        List<RelatorioCustoMaquinaDTO> maquinas = calcularRelatorioCustoMaquinas(maquinaIds, mes, ano);
+
+        BigDecimal totalGeral = maquinas.stream()
+                .map(RelatorioCustoMaquinaDTO::custoTotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        Document document = new Document();
+        PdfWriter.getInstance(document, outputStream);
+        document.open();
+        document.add(new Paragraph("Relatório de Custo por Máquinas"));
+        for (RelatorioCustoMaquinaDTO maquina : maquinas) {
+            document.add(new Paragraph(" "));
+            document.add(new Paragraph("Código da Máquina: " + maquina.maquinaCodigo()));
+            if (maquina.mes() != null) document.add(new Paragraph("Mês: " + maquina.mes()));
+            if (maquina.ano() != null) document.add(new Paragraph("Ano: " + maquina.ano()));
+            document.add(new Paragraph("Custo de Peças: " + maquina.custoPecas()));
+            document.add(new Paragraph("Custo de Mão de Obra: " + maquina.custoMaoDeObra()));
+            document.add(new Paragraph("Custo Total: " + maquina.custoTotal()));
+        }
+        document.add(new Paragraph(" "));
+        document.add(new Paragraph("Total Geral: " + totalGeral));
+        document.close();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.set(HttpHeaders.CONTENT_DISPOSITION,
+                "attachment; filename=relatorio-custo-maquinas.pdf");
+
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(outputStream.toByteArray());
+    }
+
+    private List<RelatorioCustoMaquinaDTO> calcularRelatorioCustoMaquinas(
+            List<Long> maquinaIds,
+            Integer mes,
+            Integer ano
+    ) {
+        if (mes != null && ano == null) {
+            throw new RelatorioParametrosInvalidosException("ano é obrigatório quando mes é informado.");
+        }
+
+        List<Maquina> maquinas = new ArrayList<>();
+        for (Long maquinaId : maquinaIds) {
+            maquinas.add(maquinaRepository.findById(maquinaId)
+                    .orElseThrow(() -> new RecursoNaoEncontradoException(
+                            "Máquina com ID " + maquinaId + " não encontrada."
+                    )));
+        }
+
+        List<RelatorioCustoMaquinaDTO> resultado = new ArrayList<>();
+        for (Maquina maquina : maquinas) {
+            Long maquinaId = maquina.getId();
+            BigDecimal custoPecas;
+            BigDecimal custoMaoDeObra;
+            Integer mesResultado = null;
+            Integer anoResultado = null;
+
+            if (mes != null && ano != null) {
+                custoPecas = movimentacaoEstoqueRepository
+                        .calcularCustoPecasPorMaquinaMesEAno(maquinaId, mes, ano);
+                custoMaoDeObra = custoManutencaoService
+                        .calcularCustoMaoDeObraPorMaquinaMesEAno(maquinaId, mes, ano);
+                mesResultado = mes;
+                anoResultado = ano;
+            } else if (ano != null) {
+                custoPecas = movimentacaoEstoqueRepository
+                        .calcularCustoPecasPorMaquinaEAno(maquinaId, ano);
+                custoMaoDeObra = custoManutencaoService
+                        .calcularCustoMaoDeObraPorMaquinaEAno(maquinaId, ano);
+                anoResultado = ano;
+            } else {
+                custoPecas = movimentacaoEstoqueRepository
+                        .calcularCustoPecasPorMaquinaTotal(maquinaId);
+                custoMaoDeObra = custoManutencaoService
+                        .calcularCustoMaoDeObraPorMaquinaTotal(maquinaId);
+            }
+
+            if (custoPecas == null) custoPecas = BigDecimal.ZERO;
+            if (custoMaoDeObra == null) custoMaoDeObra = BigDecimal.ZERO;
+
+            resultado.add(new RelatorioCustoMaquinaDTO(
+                    maquinaId,
+                    maquina.getCodigo(),
+                    mesResultado,
+                    anoResultado,
+                    custoPecas,
+                    custoMaoDeObra,
+                    custoPecas.add(custoMaoDeObra)
+            ));
+        }
+
+        return resultado;
     }
 }

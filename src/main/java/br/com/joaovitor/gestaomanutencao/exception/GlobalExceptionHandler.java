@@ -137,6 +137,18 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(status).body(body);
     }
 
+    @ExceptionHandler(RelatorioParametrosInvalidosException.class)
+    public ResponseEntity<ErroResponseDTO> handleRelatorioParametrosInvalidosException(RelatorioParametrosInvalidosException exception) {
+        HttpStatus status = HttpStatus.BAD_REQUEST;
+        ErroResponseDTO body = new ErroResponseDTO(
+                LocalDateTime.now(),
+                status.value(),
+                exception.getClass().getSimpleName(),
+                exception.getMessage()
+        );
+        return ResponseEntity.status(status).body(body);
+    }
+
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ErroResponseDTO> handleDataIntegrityViolationException(
             DataIntegrityViolationException exception
