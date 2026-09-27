@@ -1,5 +1,7 @@
 # Sistema de Gestão de Manutenção
 
+![CI](https://github.com/Jcarvasousa/gestao-manutencao-api/actions/workflows/ci.yml/badge.svg)
+
 API REST para gestão operacional de manutenção industrial — controle de máquinas, ordens de manutenção, estoque de peças e solicitações de compra.
 
 ## O problema
