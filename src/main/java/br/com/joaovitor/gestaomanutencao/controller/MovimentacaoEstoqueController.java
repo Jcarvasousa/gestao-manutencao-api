@@ -1,5 +1,6 @@
 package br.com.joaovitor.gestaomanutencao.controller;
 
+import br.com.joaovitor.gestaomanutencao.dto.MovimentacaoAjusteRequestDTO;
 import br.com.joaovitor.gestaomanutencao.dto.MovimentacaoEntradaRequestDTO;
 import br.com.joaovitor.gestaomanutencao.dto.MovimentacaoEstoqueResponseDTO;
 import br.com.joaovitor.gestaomanutencao.dto.MovimentacaoSaidaRequestDTO;
@@ -74,6 +75,18 @@ public class MovimentacaoEstoqueController {
         MovimentacaoEstoque movimentacao = movimentacaoEstoqueService.registrarEntrada(
                 requestDTO.pecaId(),
                 requestDTO.quantidade(),
+                requestDTO.observacao()
+        );
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(MovimentacaoEstoqueResponseDTO.fromEntity(movimentacao));
+    }
+
+    @PostMapping("/ajuste")
+    public ResponseEntity<MovimentacaoEstoqueResponseDTO> registrarAjuste(@Valid @RequestBody MovimentacaoAjusteRequestDTO requestDTO) {
+        MovimentacaoEstoque movimentacao = movimentacaoEstoqueService.registrarAjuste(
+                requestDTO.pecaId(),
+                requestDTO.quantidadeNova(),
                 requestDTO.observacao()
         );
 

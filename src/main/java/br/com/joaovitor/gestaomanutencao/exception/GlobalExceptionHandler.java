@@ -101,6 +101,18 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(status).body(body);
     }
 
+    @ExceptionHandler(AjusteEstoqueInvalidoException.class)
+    public ResponseEntity<ErroResponseDTO> handleAjusteEstoqueInvalidoException(AjusteEstoqueInvalidoException exception) {
+        HttpStatus status = HttpStatus.CONFLICT;
+        ErroResponseDTO body = new ErroResponseDTO(
+                LocalDateTime.now(),
+                status.value(),
+                exception.getClass().getSimpleName(),
+                exception.getMessage()
+        );
+        return ResponseEntity.status(status).body(body);
+    }
+
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ErroResponseDTO> handleDataIntegrityViolationException(
             DataIntegrityViolationException exception

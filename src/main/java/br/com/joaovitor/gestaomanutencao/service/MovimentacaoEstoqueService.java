@@ -1,5 +1,6 @@
 package br.com.joaovitor.gestaomanutencao.service;
 
+import br.com.joaovitor.gestaomanutencao.exception.AjusteEstoqueInvalidoException;
 import br.com.joaovitor.gestaomanutencao.exception.EstoqueInsuficienteException;
 import br.com.joaovitor.gestaomanutencao.exception.ManutencaoNaoEstaAbertaException;
 import br.com.joaovitor.gestaomanutencao.exception.RecursoNaoEncontradoException;
@@ -86,6 +87,33 @@ public class MovimentacaoEstoqueService {
         movimentacao.setPeca(peca);
         movimentacao.setTipo(TipoMovimentacao.ENTRADA);
         movimentacao.setQuantidade(quantidade);
+        movimentacao.setManutencao(null);
+        movimentacao.setObservacao(observacao);
+
+        return movimentacaoEstoqueRepository.save(movimentacao);
+    }
+
+    @Transactional
+    public MovimentacaoEstoque registrarAjuste(Long pecaId, Integer quantidadeNova, String observacao) {
+        Peca peca = pecaRepository.findById(pecaId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Peça não encontrada para o id: " + pecaId));
+
+        int diferenca = quantidadeNova - peca.getQuantidadeAtual();
+        if (diferenca == 0) {
+            throw new AjusteEstoqueInvalidoException(
+                    "A quantidade nova informada é igual à quantidade atual da peça de id " + pecaId
+                            + ". Nenhum ajuste é necessário."
+            );
+        }
+
+        peca.setQuantidadeAtual(quantidadeNova);
+        pecaRepository.save(peca);
+
+        MovimentacaoEstoque movimentacao = new MovimentacaoEstoque();
+        movimentacao.setPeca(peca);
+        movimentacao.setTipo(TipoMovimentacao.AJUSTE);
+        movimentacao.setQuantidade(Math.abs(diferenca));
+        movimentacao.setCustoUnitarioMomento(null);
         movimentacao.setManutencao(null);
         movimentacao.setObservacao(observacao);
 
