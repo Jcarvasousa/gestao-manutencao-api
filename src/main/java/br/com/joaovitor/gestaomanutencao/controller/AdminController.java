@@ -21,6 +21,7 @@ import br.com.joaovitor.gestaomanutencao.repository.PecaRepository;
 import br.com.joaovitor.gestaomanutencao.repository.ServicoTerceiroRepository;
 import br.com.joaovitor.gestaomanutencao.repository.SetorRepository;
 import br.com.joaovitor.gestaomanutencao.repository.TecnicoRepository;
+import br.com.joaovitor.gestaomanutencao.service.ManutencaoService;
 import br.com.joaovitor.gestaomanutencao.service.MovimentacaoEstoqueService;
 import br.com.joaovitor.gestaomanutencao.service.SolicitacaoCompraService;
 import jakarta.persistence.EntityManager;
@@ -59,6 +60,7 @@ public class AdminController {
     private final OrcamentoMensalRepository orcamentoMensalRepository;
     private final MovimentacaoEstoqueService movimentacaoEstoqueService;
     private final SolicitacaoCompraService solicitacaoCompraService;
+    private final ManutencaoService manutencaoService;
 
     public AdminController(
             EntityManager entityManager,
@@ -71,7 +73,8 @@ public class AdminController {
             ServicoTerceiroRepository servicoTerceiroRepository,
             OrcamentoMensalRepository orcamentoMensalRepository,
             MovimentacaoEstoqueService movimentacaoEstoqueService,
-            SolicitacaoCompraService solicitacaoCompraService
+            SolicitacaoCompraService solicitacaoCompraService,
+            ManutencaoService manutencaoService
     ) {
         this.entityManager = entityManager;
         this.setorRepository = setorRepository;
@@ -84,6 +87,7 @@ public class AdminController {
         this.orcamentoMensalRepository = orcamentoMensalRepository;
         this.movimentacaoEstoqueService = movimentacaoEstoqueService;
         this.solicitacaoCompraService = solicitacaoCompraService;
+        this.manutencaoService = manutencaoService;
     }
 
     @PostMapping("/reset-demo")
@@ -116,6 +120,12 @@ public class AdminController {
         gerarManutencoes(maquinas, pecasParaMovimentacao, estoqueSimulado, tecnicos, random);
         gerarComprasRecebidasHistoricas(pecasParaMovimentacao);
         gerarSolicitacoesCompraParaEstoqueBaixo(pecas);
+
+        // Random proprio (SEED + 2), gerado por ultimo: nao consome a sequencia do Random(SEED) nem do SEED + 1
+        Random randomExtras = new Random(SEED + 2);
+        gerarManutencoesCanceladas(maquinas, pecasParaMovimentacao, randomExtras);
+        gerarDevolucaoParcial(pecasParaMovimentacao, randomExtras);
+        ajustarValoresServicosTerceiros(randomExtras);
 
         return ResponseEntity.ok(Map.of("mensagem", "Dados de demonstracao resetados com sucesso."));
     }
@@ -537,6 +547,71 @@ public class AdminController {
         }
     }
 
+    private static final int MARGEM_MINIMA_ESTOQUE_SEED = 4;
+
+    // So usa pecas com folga sobre o estoque minimo, para nao alterar a contagem de pecas abaixo do minimo
+    private Peca sortearPecaComFolga(List<Peca> pecas, Random random) {
+        List<Peca> candidatas = pecas.stream()
+                .filter(peca -> peca.getQuantidadeAtual() - peca.getEstoqueMinimo() >= MARGEM_MINIMA_ESTOQUE_SEED)
+                .toList();
+        return candidatas.get(random.nextInt(candidatas.size()));
+    }
+
+    private void gerarManutencoesCanceladas(List<Maquina> maquinas, List<Peca> pecas, Random random) {
+        LocalDateTime agora = LocalDateTime.now();
+        for (int i = 0; i < 2; i++) {
+            Maquina maquina = maquinas.get(random.nextInt(maquinas.size()));
+            String problema = PROBLEMAS_CORRETIVA.get(random.nextInt(PROBLEMAS_CORRETIVA.size()));
+            Manutencao manutencao = criarManutencao(maquina, problema, TipoManutencao.CORRETIVA);
+            definirDataAberturaHistorica(manutencao, agora.minusDays(15 + random.nextInt(30)));
+
+            int numeroPecas = 1 + random.nextInt(2);
+            for (int j = 0; j < numeroPecas; j++) {
+                Peca peca = sortearPecaComFolga(pecas, random);
+                movimentacaoEstoqueService.registrarSaida(
+                        peca.getId(), manutencao.getId(), 1 + random.nextInt(3), "Peca separada antes do cancelamento da manutencao"
+                );
+            }
+            manutencaoService.cancelar(manutencao.getId());
+        }
+    }
+
+    // Duas saidas da mesma peca e uma devolucao maior que a ultima: a devolucao cruza dois lotes (LIFO)
+    private void gerarDevolucaoParcial(List<Peca> pecas, Random random) {
+        Manutencao emAndamento = manutencaoRepository.findByStatus(StatusManutencao.EM_ANDAMENTO).stream()
+                .min(java.util.Comparator.comparing(Manutencao::getId))
+                .orElseThrow();
+        Peca peca = sortearPecaComFolga(pecas, random);
+        movimentacaoEstoqueService.registrarSaida(peca.getId(), emAndamento.getId(), 2, "Peca utilizada durante o servico de manutencao");
+        movimentacaoEstoqueService.registrarSaida(peca.getId(), emAndamento.getId(), 2, "Peca utilizada durante o servico de manutencao");
+        movimentacaoEstoqueService.registrarDevolucao(peca.getId(), emAndamento.getId(), 3, "Peca devolvida ao estoque sem uso");
+    }
+
+    // valorFinal em ~40% dos terceiros (fator 0,90 a 1,10) e ~25% no modo horas x valorHora
+    private void ajustarValoresServicosTerceiros(Random random) {
+        List<ServicoTerceiro> servicos = servicoTerceiroRepository.findAll().stream()
+                .sorted(java.util.Comparator.comparing(ServicoTerceiro::getId))
+                .toList();
+        for (ServicoTerceiro servico : servicos) {
+            boolean modoHoras = random.nextDouble() < 0.25;
+            BigDecimal horas = BigDecimal.valueOf(2 + random.nextInt(15));
+            BigDecimal valorHora = BigDecimal.valueOf(60 + random.nextInt(91));
+            boolean comValorFinal = random.nextDouble() < 0.40;
+            BigDecimal fator = BigDecimal.valueOf(90 + random.nextInt(21)).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+
+            if (modoHoras) {
+                servico.setHorasTrabalhadas(horas);
+                servico.setValorHora(valorHora);
+                servico.setValorApurado(horas.multiply(valorHora).setScale(2, RoundingMode.HALF_UP));
+            }
+            if (comValorFinal) {
+                servico.setValorFinal(servico.getValorApurado().multiply(fator).setScale(2, RoundingMode.HALF_UP));
+                servico.setObservacao("Valor final negociado com o fornecedor");
+            }
+            servicoTerceiroRepository.save(servico);
+        }
+    }
+
     // marcarComoRecebida grava dataRecebimento = now() e a entrada gerada usa dataHora updatable=false: UPDATE nativo
     private void definirDataRecebimentoHistorica(SolicitacaoCompra solicitacao, LocalDateTime dataRecebimento) {
         entityManager.flush();
@@ -634,7 +709,7 @@ public class AdminController {
     private void vincularServicoTerceiro(Manutencao manutencao, Random random) {
         ServicoTerceiro servicoTerceiro = new ServicoTerceiro();
         servicoTerceiro.setManutencao(manutencao);
-        servicoTerceiro.setValor(BigDecimal.valueOf(150 + random.nextInt(651)));
+        servicoTerceiro.setValorApurado(BigDecimal.valueOf(150 + random.nextInt(651)));
         servicoTerceiro.setDescricao(DESCRICOES_TERCEIRO.get(random.nextInt(DESCRICOES_TERCEIRO.size())));
         servicoTerceiro.setFornecedor(FORNECEDORES_TERCEIRO.get(random.nextInt(FORNECEDORES_TERCEIRO.size())));
         servicoTerceiroRepository.save(servicoTerceiro);
