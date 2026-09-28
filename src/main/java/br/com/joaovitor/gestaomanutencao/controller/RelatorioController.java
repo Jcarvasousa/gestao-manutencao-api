@@ -154,9 +154,7 @@ public class RelatorioController {
                 ));
 
         BigDecimal valorPlanejado = orcamentoMensal.getValorPlanejado();
-        BigDecimal valorRealizado = solicitacaoCompraRepository
-                .calcularGastoRealizadoPorMesEAno(mes, ano);
-        if (valorRealizado == null) valorRealizado = BigDecimal.ZERO;
+        BigDecimal valorRealizado = calcularValorRealizadoMensal(mes, ano);
 
         BigDecimal saldoDisponivel = valorPlanejado.subtract(valorRealizado);
         BigDecimal percentualUtilizado = valorPlanejado.compareTo(BigDecimal.ZERO) == 0
@@ -187,9 +185,7 @@ public class RelatorioController {
                 ));
 
         BigDecimal valorPlanejado = orcamentoMensal.getValorPlanejado();
-        BigDecimal valorRealizado = solicitacaoCompraRepository
-                .calcularGastoRealizadoPorMesEAno(mes, ano);
-        if (valorRealizado == null) valorRealizado = BigDecimal.ZERO;
+        BigDecimal valorRealizado = calcularValorRealizadoMensal(mes, ano);
 
         BigDecimal saldoDisponivel = valorPlanejado.subtract(valorRealizado);
         BigDecimal percentualUtilizado = valorPlanejado.compareTo(BigDecimal.ZERO) == 0
@@ -232,8 +228,7 @@ public class RelatorioController {
                 .map(orcamento -> orcamento.getValorPlanejado())
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal valorRealizadoTotal = solicitacaoCompraRepository.calcularGastoRealizadoPorAno(ano);
-        if (valorRealizadoTotal == null) valorRealizadoTotal = BigDecimal.ZERO;
+        BigDecimal valorRealizadoTotal = calcularValorRealizadoAnual(ano);
 
         BigDecimal saldoDisponivel = valorPlanejadoTotal.subtract(valorRealizadoTotal);
         BigDecimal percentualUtilizado = valorPlanejadoTotal.compareTo(BigDecimal.ZERO) == 0
@@ -262,8 +257,7 @@ public class RelatorioController {
                 .map(orcamento -> orcamento.getValorPlanejado())
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal valorRealizadoTotal = solicitacaoCompraRepository.calcularGastoRealizadoPorAno(ano);
-        if (valorRealizadoTotal == null) valorRealizadoTotal = BigDecimal.ZERO;
+        BigDecimal valorRealizadoTotal = calcularValorRealizadoAnual(ano);
 
         BigDecimal saldoDisponivel = valorPlanejadoTotal.subtract(valorRealizadoTotal);
         BigDecimal percentualUtilizado = valorPlanejadoTotal.compareTo(BigDecimal.ZERO) == 0
@@ -617,6 +611,26 @@ public class RelatorioController {
         return ResponseEntity.ok()
                 .headers(headers)
                 .body(outputStream.toByteArray());
+    }
+
+    private BigDecimal calcularValorRealizadoMensal(Integer mes, Integer ano) {
+        BigDecimal valorPecas = solicitacaoCompraRepository.calcularGastoRealizadoPorMesEAno(mes, ano);
+        if (valorPecas == null) valorPecas = BigDecimal.ZERO;
+
+        BigDecimal valorServicoTerceiro = servicoTerceiroRepository.somarValorServicoTerceiroPorMesEAno(mes, ano);
+        if (valorServicoTerceiro == null) valorServicoTerceiro = BigDecimal.ZERO;
+
+        return valorPecas.add(valorServicoTerceiro);
+    }
+
+    private BigDecimal calcularValorRealizadoAnual(Integer ano) {
+        BigDecimal valorPecas = solicitacaoCompraRepository.calcularGastoRealizadoPorAno(ano);
+        if (valorPecas == null) valorPecas = BigDecimal.ZERO;
+
+        BigDecimal valorServicoTerceiro = servicoTerceiroRepository.somarValorServicoTerceiroPorAno(ano);
+        if (valorServicoTerceiro == null) valorServicoTerceiro = BigDecimal.ZERO;
+
+        return valorPecas.add(valorServicoTerceiro);
     }
 
     private List<RelatorioCustoMaquinaDTO> calcularRelatorioCustoMaquinas(

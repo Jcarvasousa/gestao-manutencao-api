@@ -37,6 +37,14 @@ public interface ServicoTerceiroRepository extends JpaRepository<ServicoTerceiro
             SELECT COALESCE(SUM(st.valor), 0)
             FROM ServicoTerceiro st
             WHERE st.manutencao.status = br.com.joaovitor.gestaomanutencao.model.StatusManutencao.CONCLUIDA
+              AND YEAR(st.manutencao.dataConclusao) = :ano
+            """)
+    BigDecimal somarValorServicoTerceiroPorAno(@Param("ano") Integer ano);
+
+    @Query("""
+            SELECT COALESCE(SUM(st.valor), 0)
+            FROM ServicoTerceiro st
+            WHERE st.manutencao.status = br.com.joaovitor.gestaomanutencao.model.StatusManutencao.CONCLUIDA
               AND st.manutencao.maquina.id = :maquinaId
               AND MONTH(st.manutencao.dataConclusao) = :mes
               AND YEAR(st.manutencao.dataConclusao) = :ano
