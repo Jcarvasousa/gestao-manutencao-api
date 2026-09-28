@@ -25,4 +25,18 @@ public final class PecaSpecification {
                         "%" + codigo.toLowerCase() + "%"
                 );
     }
+
+    public static Specification<Peca> comBusca(String busca) {
+        return (root, query, criteriaBuilder) -> {
+            if (busca == null || busca.isBlank()) {
+                return null;
+            }
+            String padrao = "%" + busca.trim().toLowerCase() + "%";
+            return criteriaBuilder.or(
+                    criteriaBuilder.like(criteriaBuilder.lower(root.get("codigo")), padrao),
+                    criteriaBuilder.like(criteriaBuilder.lower(root.get("nome")), padrao),
+                    criteriaBuilder.like(criteriaBuilder.lower(root.get("categoria")), padrao)
+            );
+        };
+    }
 }

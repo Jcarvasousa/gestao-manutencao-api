@@ -45,7 +45,8 @@ public class PecaController {
     public ResponseEntity<Page<PecaResponseDTO>> listarTodas(
             Pageable pageable,
             @RequestParam(required = false) String categoria,
-            @RequestParam(required = false) String codigo
+            @RequestParam(required = false) String codigo,
+            @RequestParam(required = false) String busca
     ) {
         var specification = org.springframework.data.jpa.domain.Specification.where(
                 PecaSpecification.comCategoria(null)
@@ -55,6 +56,9 @@ public class PecaController {
         }
         if (codigo != null) {
             specification = specification.and(PecaSpecification.comCodigo(codigo));
+        }
+        if (busca != null) {
+            specification = specification.and(PecaSpecification.comBusca(busca));
         }
 
         return ResponseEntity.ok(
