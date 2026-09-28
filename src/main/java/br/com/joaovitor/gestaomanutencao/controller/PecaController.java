@@ -99,7 +99,6 @@ public class PecaController {
         peca.setLocalizacaoFisica(requestDTO.localizacaoFisica());
         peca.setQuantidadeAtual(requestDTO.quantidadeAtual());
         peca.setEstoqueMinimo(requestDTO.estoqueMinimo());
-        peca.setCustoUnitario(requestDTO.custoUnitario());
 
         Peca atualizada = pecaRepository.save(peca);
         return ResponseEntity.ok(PecaResponseDTO.fromEntity(atualizada));
