@@ -27,4 +27,7 @@ public class Setor {
     @NotBlank
     @Column(nullable = false)
     private String nome;
+
+    @Column(nullable = false, columnDefinition = "boolean not null default true")
+    private Boolean ativo = true;
 }

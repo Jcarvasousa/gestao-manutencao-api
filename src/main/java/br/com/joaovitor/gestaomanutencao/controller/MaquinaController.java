@@ -4,6 +4,7 @@ import br.com.joaovitor.gestaomanutencao.dto.MaquinaRequestDTO;
 import br.com.joaovitor.gestaomanutencao.dto.MaquinaResponseDTO;
 import br.com.joaovitor.gestaomanutencao.dto.MaquinaStatusRequestDTO;
 import br.com.joaovitor.gestaomanutencao.exception.RecursoNaoEncontradoException;
+import br.com.joaovitor.gestaomanutencao.exception.SetorInativoException;
 import br.com.joaovitor.gestaomanutencao.model.Maquina;
 import br.com.joaovitor.gestaomanutencao.model.Setor;
 import br.com.joaovitor.gestaomanutencao.model.StatusMaquina;
@@ -25,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Objects;
 import java.util.Optional;
 
 @RestController
@@ -44,7 +46,7 @@ public class MaquinaController {
         Maquina maquina = new Maquina();
         maquina.setCodigo(requestDTO.codigo());
         maquina.setDescricao(requestDTO.descricao());
-        maquina.setSetor(buscarSetor(requestDTO.setorId()));
+        maquina.setSetor(buscarSetor(requestDTO.setorId(), true));
 
         maquinaRepository.save(maquina);
 
@@ -100,7 +102,9 @@ public class MaquinaController {
 
         maquina.setCodigo(requestDTO.codigo());
         maquina.setDescricao(requestDTO.descricao());
-        maquina.setSetor(buscarSetor(requestDTO.setorId()));
+        Long setorAtualId = maquina.getSetor() == null ? null : maquina.getSetor().getId();
+        boolean setorMudou = !Objects.equals(setorAtualId, requestDTO.setorId());
+        maquina.setSetor(buscarSetor(requestDTO.setorId(), setorMudou));
 
         maquinaRepository.save(maquina);
         return ResponseEntity.ok(MaquinaResponseDTO.fromEntity(maquina));
@@ -122,14 +126,22 @@ public class MaquinaController {
         return ResponseEntity.ok(MaquinaResponseDTO.fromEntity(maquina));
     }
 
-    private Setor buscarSetor(Long setorId) {
+    private Setor buscarSetor(Long setorId, boolean validarAtivo) {
         if (setorId == null) {
             return null;
         }
 
-        return setorRepository.findById(setorId)
+        Setor setor = setorRepository.findById(setorId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException(
                         "Setor com ID " + setorId + " não encontrado."
                 ));
+
+        if (validarAtivo && !Boolean.TRUE.equals(setor.getAtivo())) {
+            throw new SetorInativoException(
+                    "Setor inativo: não é possível vincular máquinas ao setor '" + setor.getNome() + "'."
+            );
+        }
+
+        return setor;
     }
 }

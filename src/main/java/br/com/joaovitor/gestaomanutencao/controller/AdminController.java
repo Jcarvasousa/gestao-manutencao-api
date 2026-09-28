@@ -560,6 +560,7 @@ public class AdminController {
     private Setor criarSetor(String nome) {
         Setor setor = new Setor();
         setor.setNome(nome);
+        setor.setAtivo(true);
         return setorRepository.save(setor);
     }
 

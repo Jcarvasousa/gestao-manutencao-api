@@ -41,6 +41,30 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(status).body(body);
     }
 
+    @ExceptionHandler(SetorNomeDuplicadoException.class)
+    public ResponseEntity<ErroResponseDTO> handleSetorNomeDuplicadoException(SetorNomeDuplicadoException exception) {
+        HttpStatus status = HttpStatus.CONFLICT;
+        ErroResponseDTO body = new ErroResponseDTO(
+                LocalDateTime.now(),
+                status.value(),
+                exception.getClass().getSimpleName(),
+                exception.getMessage()
+        );
+        return ResponseEntity.status(status).body(body);
+    }
+
+    @ExceptionHandler(SetorInativoException.class)
+    public ResponseEntity<ErroResponseDTO> handleSetorInativoException(SetorInativoException exception) {
+        HttpStatus status = HttpStatus.CONFLICT;
+        ErroResponseDTO body = new ErroResponseDTO(
+                LocalDateTime.now(),
+                status.value(),
+                exception.getClass().getSimpleName(),
+                exception.getMessage()
+        );
+        return ResponseEntity.status(status).body(body);
+    }
+
     @ExceptionHandler(CompraDesnecessariaException.class)
     public ResponseEntity<ErroResponseDTO> handleCompraDesnecessariaException(CompraDesnecessariaException exception) {
         HttpStatus status = HttpStatus.CONFLICT;

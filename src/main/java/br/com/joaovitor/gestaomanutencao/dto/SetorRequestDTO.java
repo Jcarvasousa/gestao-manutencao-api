@@ -4,6 +4,8 @@ import jakarta.validation.constraints.NotBlank;
 
 public record SetorRequestDTO(
         @NotBlank
-        String nome
+        String nome,
+
+        Boolean ativo
 ) {
 }
