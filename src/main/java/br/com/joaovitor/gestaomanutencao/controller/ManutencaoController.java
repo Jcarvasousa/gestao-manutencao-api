@@ -3,6 +3,7 @@ package br.com.joaovitor.gestaomanutencao.controller;
 import br.com.joaovitor.gestaomanutencao.dto.ManutencaoRequestDTO;
 import br.com.joaovitor.gestaomanutencao.dto.ManutencaoConcluirRequestDTO;
 import br.com.joaovitor.gestaomanutencao.dto.ManutencaoResponseDTO;
+import br.com.joaovitor.gestaomanutencao.dto.PecaUsadaResponseDTO;
 import br.com.joaovitor.gestaomanutencao.exception.ManutencaoDadosConclusaoIncompletosException;
 import br.com.joaovitor.gestaomanutencao.exception.ManutencaoNaoEstaAbertaException;
 import br.com.joaovitor.gestaomanutencao.exception.ManutencaoSemResponsavelException;
@@ -15,6 +16,8 @@ import br.com.joaovitor.gestaomanutencao.repository.ManutencaoRepository;
 import br.com.joaovitor.gestaomanutencao.repository.ManutencaoTecnicoRepository;
 import br.com.joaovitor.gestaomanutencao.repository.MaquinaRepository;
 import br.com.joaovitor.gestaomanutencao.repository.ServicoTerceiroRepository;
+import br.com.joaovitor.gestaomanutencao.service.ManutencaoService;
+import br.com.joaovitor.gestaomanutencao.service.MovimentacaoEstoqueService;
 import br.com.joaovitor.gestaomanutencao.specification.ManutencaoSpecification;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -24,6 +27,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/manutencoes")
@@ -33,17 +37,23 @@ public class ManutencaoController {
     private final MaquinaRepository maquinaRepository;
     private final ServicoTerceiroRepository servicoTerceiroRepository;
     private final ManutencaoTecnicoRepository manutencaoTecnicoRepository;
+    private final ManutencaoService manutencaoService;
+    private final MovimentacaoEstoqueService movimentacaoEstoqueService;
 
     public ManutencaoController(
             ManutencaoRepository manutencaoRepository,
             MaquinaRepository maquinaRepository,
             ServicoTerceiroRepository servicoTerceiroRepository,
-            ManutencaoTecnicoRepository manutencaoTecnicoRepository
+            ManutencaoTecnicoRepository manutencaoTecnicoRepository,
+            ManutencaoService manutencaoService,
+            MovimentacaoEstoqueService movimentacaoEstoqueService
     ) {
         this.manutencaoRepository = manutencaoRepository;
         this.maquinaRepository = maquinaRepository;
         this.servicoTerceiroRepository = servicoTerceiroRepository;
         this.manutencaoTecnicoRepository = manutencaoTecnicoRepository;
+        this.manutencaoService = manutencaoService;
+        this.movimentacaoEstoqueService = movimentacaoEstoqueService;
     }
 
     @PostMapping
@@ -135,8 +145,7 @@ public class ManutencaoController {
                         "Manutenção com ID " + id + " não encontrada."
                 ));
 
-        if (manutencao.getStatus() == StatusManutencao.CONCLUIDA
-                || manutencao.getStatus() == StatusManutencao.CANCELADA) {
+        if (manutencao.estaFinalizada()) {
             throw new ManutencaoNaoEstaAbertaException(
                     "A manutenção já está finalizada."
             );
@@ -177,5 +186,16 @@ public class ManutencaoController {
 
         manutencaoRepository.save(manutencao);
         return ResponseEntity.ok(ManutencaoResponseDTO.fromEntity(manutencao));
+    }
+
+    @PatchMapping("/{id}/cancelar")
+    public ResponseEntity<ManutencaoResponseDTO> cancelar(@PathVariable Long id) {
+        Manutencao manutencao = manutencaoService.cancelar(id);
+        return ResponseEntity.ok(ManutencaoResponseDTO.fromEntity(manutencao));
+    }
+
+    @GetMapping("/{id}/pecas-usadas")
+    public ResponseEntity<List<PecaUsadaResponseDTO>> listarPecasUsadas(@PathVariable Long id) {
+        return ResponseEntity.ok(movimentacaoEstoqueService.listarPecasUsadas(id));
     }
 }

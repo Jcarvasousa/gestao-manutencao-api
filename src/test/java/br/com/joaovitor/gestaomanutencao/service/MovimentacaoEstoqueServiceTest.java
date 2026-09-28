@@ -46,7 +46,8 @@ class MovimentacaoEstoqueServiceTest {
 
     @Test
     void registrarSaidaDeveLancarExcecaoQuandoPecaNaoExistir() {
-        when(pecaRepository.findById(1L)).thenReturn(Optional.empty());
+        when(manutencaoRepository.buscarPorIdComTrava(2L)).thenReturn(Optional.of(manutencao(StatusManutencao.ABERTA)));
+        when(pecaRepository.buscarPorIdComTrava(1L)).thenReturn(Optional.empty());
 
         assertThrows(RecursoNaoEncontradoException.class,
                 () -> service.registrarSaida(1L, 2L, 1, "Saída"));
@@ -54,8 +55,7 @@ class MovimentacaoEstoqueServiceTest {
 
     @Test
     void registrarSaidaDeveLancarExcecaoQuandoManutencaoNaoExistir() {
-        when(pecaRepository.findById(1L)).thenReturn(Optional.of(peca(5)));
-        when(manutencaoRepository.findById(2L)).thenReturn(Optional.empty());
+        when(manutencaoRepository.buscarPorIdComTrava(2L)).thenReturn(Optional.empty());
 
         assertThrows(RecursoNaoEncontradoException.class,
                 () -> service.registrarSaida(1L, 2L, 1, "Saída"));
@@ -65,8 +65,8 @@ class MovimentacaoEstoqueServiceTest {
     void registrarSaidaDeveLancarExcecaoQuandoManutencaoEstiverConcluida() {
         Peca peca = peca(5);
         Manutencao manutencao = manutencao(StatusManutencao.CONCLUIDA);
-        when(pecaRepository.findById(1L)).thenReturn(Optional.of(peca));
-        when(manutencaoRepository.findById(2L)).thenReturn(Optional.of(manutencao));
+        when(pecaRepository.buscarPorIdComTrava(1L)).thenReturn(Optional.of(peca));
+        when(manutencaoRepository.buscarPorIdComTrava(2L)).thenReturn(Optional.of(manutencao));
 
         assertThrows(ManutencaoNaoEstaAbertaException.class,
                 () -> service.registrarSaida(1L, 2L, 1, "Saída"));
@@ -76,8 +76,8 @@ class MovimentacaoEstoqueServiceTest {
     void registrarSaidaDeveLancarExcecaoQuandoEstoqueForInsuficiente() {
         Peca peca = peca(2);
         Manutencao manutencao = manutencao(StatusManutencao.ABERTA);
-        when(pecaRepository.findById(1L)).thenReturn(Optional.of(peca));
-        when(manutencaoRepository.findById(2L)).thenReturn(Optional.of(manutencao));
+        when(pecaRepository.buscarPorIdComTrava(1L)).thenReturn(Optional.of(peca));
+        when(manutencaoRepository.buscarPorIdComTrava(2L)).thenReturn(Optional.of(manutencao));
 
         assertThrows(EstoqueInsuficienteException.class,
                 () -> service.registrarSaida(1L, 2L, 3, "Saída"));
@@ -88,8 +88,8 @@ class MovimentacaoEstoqueServiceTest {
         Peca peca = peca(5);
         peca.setCustoUnitario(new BigDecimal("12.50"));
         Manutencao manutencao = manutencao(StatusManutencao.ABERTA);
-        when(pecaRepository.findById(1L)).thenReturn(Optional.of(peca));
-        when(manutencaoRepository.findById(2L)).thenReturn(Optional.of(manutencao));
+        when(pecaRepository.buscarPorIdComTrava(1L)).thenReturn(Optional.of(peca));
+        when(manutencaoRepository.buscarPorIdComTrava(2L)).thenReturn(Optional.of(manutencao));
         when(movimentacaoEstoqueRepository.save(any(MovimentacaoEstoque.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -112,8 +112,8 @@ class MovimentacaoEstoqueServiceTest {
         Peca peca = peca(5);
         peca.setCustoUnitario(null);
         Manutencao manutencao = manutencao(StatusManutencao.ABERTA);
-        when(pecaRepository.findById(1L)).thenReturn(Optional.of(peca));
-        when(manutencaoRepository.findById(2L)).thenReturn(Optional.of(manutencao));
+        when(pecaRepository.buscarPorIdComTrava(1L)).thenReturn(Optional.of(peca));
+        when(manutencaoRepository.buscarPorIdComTrava(2L)).thenReturn(Optional.of(manutencao));
         when(movimentacaoEstoqueRepository.save(any(MovimentacaoEstoque.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 

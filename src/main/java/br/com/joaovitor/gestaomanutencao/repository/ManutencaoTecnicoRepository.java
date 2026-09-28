@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface ManutencaoTecnicoRepository extends JpaRepository<ManutencaoTecnico, Long> {
 
@@ -14,6 +15,9 @@ public interface ManutencaoTecnicoRepository extends JpaRepository<ManutencaoTec
 
     @EntityGraph(attributePaths = "tecnico")
     List<ManutencaoTecnico> findByManutencaoId(Long manutencaoId);
+
+    @EntityGraph(attributePaths = "tecnico")
+    Optional<ManutencaoTecnico> findByIdAndManutencaoId(Long id, Long manutencaoId);
 
     @EntityGraph(attributePaths = "tecnico")
     @Query("""

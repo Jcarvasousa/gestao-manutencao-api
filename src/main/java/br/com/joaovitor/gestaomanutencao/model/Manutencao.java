@@ -60,6 +60,10 @@ public class Manutencao {
 
     private LocalDateTime dataConclusao;
 
+    public boolean estaFinalizada() {
+        return status == StatusManutencao.CONCLUIDA || status == StatusManutencao.CANCELADA;
+    }
+
     @PrePersist
     public void prePersist() {
         this.dataAbertura = LocalDateTime.now();

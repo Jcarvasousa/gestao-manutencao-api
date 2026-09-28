@@ -125,6 +125,42 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(status).body(body);
     }
 
+    @ExceptionHandler(DevolucaoExcedeSaldoException.class)
+    public ResponseEntity<ErroResponseDTO> handleDevolucaoExcedeSaldoException(DevolucaoExcedeSaldoException exception) {
+        HttpStatus status = HttpStatus.CONFLICT;
+        ErroResponseDTO body = new ErroResponseDTO(
+                LocalDateTime.now(),
+                status.value(),
+                exception.getClass().getSimpleName(),
+                exception.getMessage()
+        );
+        return ResponseEntity.status(status).body(body);
+    }
+
+    @ExceptionHandler(QuantidadeInvalidaException.class)
+    public ResponseEntity<ErroResponseDTO> handleQuantidadeInvalidaException(QuantidadeInvalidaException exception) {
+        HttpStatus status = HttpStatus.BAD_REQUEST;
+        ErroResponseDTO body = new ErroResponseDTO(
+                LocalDateTime.now(),
+                status.value(),
+                exception.getClass().getSimpleName(),
+                exception.getMessage()
+        );
+        return ResponseEntity.status(status).body(body);
+    }
+
+    @ExceptionHandler(ServicoTerceiroValorInvalidoException.class)
+    public ResponseEntity<ErroResponseDTO> handleServicoTerceiroValorInvalidoException(ServicoTerceiroValorInvalidoException exception) {
+        HttpStatus status = HttpStatus.BAD_REQUEST;
+        ErroResponseDTO body = new ErroResponseDTO(
+                LocalDateTime.now(),
+                status.value(),
+                exception.getClass().getSimpleName(),
+                exception.getMessage()
+        );
+        return ResponseEntity.status(status).body(body);
+    }
+
     @ExceptionHandler(OrcamentoJaExisteException.class)
     public ResponseEntity<ErroResponseDTO> handleOrcamentoJaExisteException(OrcamentoJaExisteException exception) {
         HttpStatus status = HttpStatus.CONFLICT;

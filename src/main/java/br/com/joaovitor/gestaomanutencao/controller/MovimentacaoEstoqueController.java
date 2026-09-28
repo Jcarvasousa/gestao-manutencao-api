@@ -1,6 +1,7 @@
 package br.com.joaovitor.gestaomanutencao.controller;
 
 import br.com.joaovitor.gestaomanutencao.dto.MovimentacaoAjusteRequestDTO;
+import br.com.joaovitor.gestaomanutencao.dto.MovimentacaoDevolucaoRequestDTO;
 import br.com.joaovitor.gestaomanutencao.dto.MovimentacaoEntradaRequestDTO;
 import br.com.joaovitor.gestaomanutencao.dto.MovimentacaoEstoqueResponseDTO;
 import br.com.joaovitor.gestaomanutencao.dto.MovimentacaoSaidaRequestDTO;
@@ -15,6 +16,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/movimentacoes-estoque")
@@ -68,6 +71,21 @@ public class MovimentacaoEstoqueController {
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(MovimentacaoEstoqueResponseDTO.fromEntity(movimentacao));
+    }
+
+    @PostMapping("/devolucao")
+    public ResponseEntity<List<MovimentacaoEstoqueResponseDTO>> registrarDevolucao(@Valid @RequestBody MovimentacaoDevolucaoRequestDTO requestDTO) {
+        List<MovimentacaoEstoqueResponseDTO> devolucoes = movimentacaoEstoqueService.registrarDevolucao(
+                        requestDTO.pecaId(),
+                        requestDTO.manutencaoId(),
+                        requestDTO.quantidade(),
+                        requestDTO.observacao()
+                )
+                .stream()
+                .map(MovimentacaoEstoqueResponseDTO::fromEntity)
+                .toList();
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(devolucoes);
     }
 
     @PostMapping("/entrada")

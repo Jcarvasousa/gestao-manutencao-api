@@ -24,6 +24,36 @@ public interface MovimentacaoEstoqueRepository extends JpaRepository<Movimentaca
 
     List<MovimentacaoEstoque> findByManutencaoId(Long manutencaoId);
 
+    @EntityGraph(attributePaths = "peca")
+    @Query("""
+            SELECT m
+            FROM MovimentacaoEstoque m
+            WHERE m.manutencao.id = :manutencaoId
+              AND m.peca.id = :pecaId
+              AND m.tipo IN (
+                br.com.joaovitor.gestaomanutencao.model.TipoMovimentacao.SAIDA,
+                br.com.joaovitor.gestaomanutencao.model.TipoMovimentacao.DEVOLUCAO
+              )
+            ORDER BY m.id ASC
+            """)
+    List<MovimentacaoEstoque> buscarSaidasEDevolucoesPorManutencaoEPeca(
+            @Param("manutencaoId") Long manutencaoId,
+            @Param("pecaId") Long pecaId
+    );
+
+    @EntityGraph(attributePaths = "peca")
+    @Query("""
+            SELECT m
+            FROM MovimentacaoEstoque m
+            WHERE m.manutencao.id = :manutencaoId
+              AND m.tipo IN (
+                br.com.joaovitor.gestaomanutencao.model.TipoMovimentacao.SAIDA,
+                br.com.joaovitor.gestaomanutencao.model.TipoMovimentacao.DEVOLUCAO
+              )
+            ORDER BY m.peca.id ASC, m.id ASC
+            """)
+    List<MovimentacaoEstoque> buscarSaidasEDevolucoesPorManutencao(@Param("manutencaoId") Long manutencaoId);
+
     @Query("""
             SELECT COALESCE(SUM(m.custoUnitarioMomento * m.quantidade), 0)
             FROM MovimentacaoEstoque m
