@@ -3,6 +3,7 @@ package br.com.joaovitor.gestaomanutencao.service;
 import br.com.joaovitor.gestaomanutencao.exception.CompraDesnecessariaException;
 import br.com.joaovitor.gestaomanutencao.exception.RecursoNaoEncontradoException;
 import br.com.joaovitor.gestaomanutencao.exception.SolicitacaoJaAbertaException;
+import br.com.joaovitor.gestaomanutencao.exception.SolicitacaoNaoPodeSerRecebidaException;
 import br.com.joaovitor.gestaomanutencao.model.Peca;
 import br.com.joaovitor.gestaomanutencao.model.SolicitacaoCompra;
 import br.com.joaovitor.gestaomanutencao.model.StatusSolicitacaoCompra;
@@ -15,6 +16,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -22,7 +24,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -138,7 +143,7 @@ class SolicitacaoCompraServiceTest {
         when(solicitacaoCompraRepository.findById(1L)).thenReturn(Optional.empty());
 
         assertThrows(RecursoNaoEncontradoException.class,
-                () -> service.marcarComoRecebida(1L));
+                () -> service.marcarComoRecebida(1L, new BigDecimal("100.00")));
     }
 
     @Test
@@ -151,7 +156,7 @@ class SolicitacaoCompraServiceTest {
         when(solicitacaoCompraRepository.save(any(SolicitacaoCompra.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        SolicitacaoCompra resultado = service.marcarComoRecebida(1L);
+        SolicitacaoCompra resultado = service.marcarComoRecebida(1L, new BigDecimal("100.00"));
 
         assertNotNull(resultado);
         assertEquals(StatusSolicitacaoCompra.RECEBIDA, resultado.getStatus());
@@ -160,6 +165,52 @@ class SolicitacaoCompraServiceTest {
                 1L, 4, "Entrada referente à solicitação de compra #1"
         );
         verify(solicitacaoCompraRepository).save(solicitacao);
+    }
+
+    @Test
+    void marcarComoRecebidaDeveGravarValorPagoEReceber() {
+        Peca peca = peca(0);
+        SolicitacaoCompra solicitacao = solicitacao(1L, StatusSolicitacaoCompra.PEDIDO_REALIZADO);
+        solicitacao.setPeca(peca);
+        solicitacao.setQuantidadeNecessaria(4);
+        when(solicitacaoCompraRepository.findById(1L)).thenReturn(Optional.of(solicitacao));
+        when(solicitacaoCompraRepository.save(any(SolicitacaoCompra.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        SolicitacaoCompra resultado = service.marcarComoRecebida(1L, new BigDecimal("250.50"));
+
+        assertEquals(new BigDecimal("250.50"), resultado.getValorOrcamento());
+        assertEquals(StatusSolicitacaoCompra.RECEBIDA, resultado.getStatus());
+        assertNotNull(resultado.getDataRecebimento());
+        verify(movimentacaoEstoqueService).registrarEntrada(
+                1L, 4, "Entrada referente à solicitação de compra #1"
+        );
+    }
+
+    @Test
+    void marcarComoRecebidaDeveLancarExcecaoQuandoStatusForRecebida() {
+        SolicitacaoCompra solicitacao = solicitacao(1L, StatusSolicitacaoCompra.RECEBIDA);
+        solicitacao.setPeca(peca(0));
+        when(solicitacaoCompraRepository.findById(1L)).thenReturn(Optional.of(solicitacao));
+
+        assertThrows(SolicitacaoNaoPodeSerRecebidaException.class,
+                () -> service.marcarComoRecebida(1L, new BigDecimal("100.00")));
+
+        verify(movimentacaoEstoqueService, never()).registrarEntrada(anyLong(), anyInt(), anyString());
+        verify(solicitacaoCompraRepository, never()).save(any(SolicitacaoCompra.class));
+    }
+
+    @Test
+    void marcarComoRecebidaDeveLancarExcecaoQuandoStatusForCancelada() {
+        SolicitacaoCompra solicitacao = solicitacao(1L, StatusSolicitacaoCompra.CANCELADA);
+        solicitacao.setPeca(peca(0));
+        when(solicitacaoCompraRepository.findById(1L)).thenReturn(Optional.of(solicitacao));
+
+        assertThrows(SolicitacaoNaoPodeSerRecebidaException.class,
+                () -> service.marcarComoRecebida(1L, new BigDecimal("100.00")));
+
+        verify(movimentacaoEstoqueService, never()).registrarEntrada(anyLong(), anyInt(), anyString());
+        verify(solicitacaoCompraRepository, never()).save(any(SolicitacaoCompra.class));
     }
 
     private Peca peca(int quantidadeAtual) {

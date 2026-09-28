@@ -1,5 +1,6 @@
 package br.com.joaovitor.gestaomanutencao.controller;
 
+import br.com.joaovitor.gestaomanutencao.dto.SolicitacaoCompraReceberRequestDTO;
 import br.com.joaovitor.gestaomanutencao.dto.SolicitacaoCompraRequestDTO;
 import br.com.joaovitor.gestaomanutencao.dto.SolicitacaoCompraResponseDTO;
 import br.com.joaovitor.gestaomanutencao.model.SolicitacaoCompra;
@@ -90,8 +91,14 @@ public class SolicitacaoCompraController {
     }
 
     @PatchMapping("/{id}/receber")
-    public ResponseEntity<SolicitacaoCompraResponseDTO> receber(@PathVariable Long id) {
-        SolicitacaoCompra solicitacaoCompra = solicitacaoCompraService.marcarComoRecebida(id);
+    public ResponseEntity<SolicitacaoCompraResponseDTO> receber(
+            @PathVariable Long id,
+            @Valid @RequestBody SolicitacaoCompraReceberRequestDTO requestDTO
+    ) {
+        SolicitacaoCompra solicitacaoCompra = solicitacaoCompraService.marcarComoRecebida(
+                id,
+                requestDTO.valorOrcamento()
+        );
 
         return ResponseEntity.ok(SolicitacaoCompraResponseDTO.fromEntity(solicitacaoCompra));
     }

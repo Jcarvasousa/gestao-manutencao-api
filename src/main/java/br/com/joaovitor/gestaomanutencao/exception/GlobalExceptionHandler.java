@@ -65,6 +65,18 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(status).body(body);
     }
 
+    @ExceptionHandler(SolicitacaoNaoPodeSerRecebidaException.class)
+    public ResponseEntity<ErroResponseDTO> handleSolicitacaoNaoPodeSerRecebidaException(SolicitacaoNaoPodeSerRecebidaException exception) {
+        HttpStatus status = HttpStatus.CONFLICT;
+        ErroResponseDTO body = new ErroResponseDTO(
+                LocalDateTime.now(),
+                status.value(),
+                exception.getClass().getSimpleName(),
+                exception.getMessage()
+        );
+        return ResponseEntity.status(status).body(body);
+    }
+
     @ExceptionHandler(EstoqueInsuficienteException.class)
     public ResponseEntity<ErroResponseDTO> handleEstoqueInsuficienteException(EstoqueInsuficienteException exception) {
         HttpStatus status = HttpStatus.CONFLICT;

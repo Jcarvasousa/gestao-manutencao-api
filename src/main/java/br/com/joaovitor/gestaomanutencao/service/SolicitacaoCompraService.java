@@ -3,6 +3,7 @@ package br.com.joaovitor.gestaomanutencao.service;
 import br.com.joaovitor.gestaomanutencao.exception.CompraDesnecessariaException;
 import br.com.joaovitor.gestaomanutencao.exception.RecursoNaoEncontradoException;
 import br.com.joaovitor.gestaomanutencao.exception.SolicitacaoJaAbertaException;
+import br.com.joaovitor.gestaomanutencao.exception.SolicitacaoNaoPodeSerRecebidaException;
 import br.com.joaovitor.gestaomanutencao.model.Manutencao;
 import br.com.joaovitor.gestaomanutencao.model.Peca;
 import br.com.joaovitor.gestaomanutencao.model.SolicitacaoCompra;
@@ -88,11 +89,20 @@ public class SolicitacaoCompraService {
     }
 
     @Transactional
-    public SolicitacaoCompra marcarComoRecebida(Long solicitacaoCompraId) {
+    public SolicitacaoCompra marcarComoRecebida(Long solicitacaoCompraId, BigDecimal valorOrcamento) {
         SolicitacaoCompra solicitacaoCompra = solicitacaoCompraRepository.findById(solicitacaoCompraId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException(
                         "Solicitação de compra não encontrada para o id: " + solicitacaoCompraId
                 ));
+
+        StatusSolicitacaoCompra statusAtual = solicitacaoCompra.getStatus();
+        if (statusAtual == StatusSolicitacaoCompra.RECEBIDA || statusAtual == StatusSolicitacaoCompra.CANCELADA) {
+            throw new SolicitacaoNaoPodeSerRecebidaException(
+                    "Solicitação de compra não pode ser recebida. Status atual: " + statusAtual
+            );
+        }
+
+        solicitacaoCompra.setValorOrcamento(valorOrcamento);
 
         movimentacaoEstoqueService.registrarEntrada(
                 solicitacaoCompra.getPeca().getId(),
