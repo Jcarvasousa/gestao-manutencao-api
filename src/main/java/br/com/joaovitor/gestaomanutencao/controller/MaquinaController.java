@@ -59,7 +59,8 @@ public class MaquinaController {
             Pageable pageable,
             @RequestParam(required = false) StatusMaquina status,
             @RequestParam(required = false) String setor,
-            @RequestParam(required = false) String codigo
+            @RequestParam(required = false) String codigo,
+            @RequestParam(required = false) String busca
     ) {
         var specification = org.springframework.data.jpa.domain.Specification.where(
                 MaquinaSpecification.comStatus(null)
@@ -72,6 +73,9 @@ public class MaquinaController {
         }
         if (codigo != null) {
             specification = specification.and(MaquinaSpecification.comCodigo(codigo));
+        }
+        if (busca != null) {
+            specification = specification.and(MaquinaSpecification.comBusca(busca));
         }
 
         return ResponseEntity.ok(

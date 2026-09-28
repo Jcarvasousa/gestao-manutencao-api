@@ -101,8 +101,9 @@ public class PecaController {
         peca.setCategoria(requestDTO.categoria());
         peca.setUnidadeMedida(requestDTO.unidadeMedida());
         peca.setLocalizacaoFisica(requestDTO.localizacaoFisica());
-        peca.setQuantidadeAtual(requestDTO.quantidadeAtual());
-        peca.setEstoqueMinimo(requestDTO.estoqueMinimo());
+        if (requestDTO.estoqueMinimo() != null) {
+            peca.setEstoqueMinimo(requestDTO.estoqueMinimo());
+        }
 
         Peca atualizada = pecaRepository.save(peca);
         return ResponseEntity.ok(PecaResponseDTO.fromEntity(atualizada));
