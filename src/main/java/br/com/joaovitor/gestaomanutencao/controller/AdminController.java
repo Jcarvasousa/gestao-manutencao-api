@@ -7,6 +7,7 @@ import br.com.joaovitor.gestaomanutencao.model.OrcamentoMensal;
 import br.com.joaovitor.gestaomanutencao.model.Peca;
 import br.com.joaovitor.gestaomanutencao.model.ServicoTerceiro;
 import br.com.joaovitor.gestaomanutencao.model.Setor;
+import br.com.joaovitor.gestaomanutencao.model.SolicitacaoCompra;
 import br.com.joaovitor.gestaomanutencao.model.StatusManutencao;
 import br.com.joaovitor.gestaomanutencao.model.StatusMaquina;
 import br.com.joaovitor.gestaomanutencao.model.Tecnico;
@@ -30,7 +31,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -111,6 +114,7 @@ public class AdminController {
 
         gerarMovimentacoesEntradaAvulsas(pecasParaMovimentacao, random);
         gerarManutencoes(maquinas, pecasParaMovimentacao, estoqueSimulado, tecnicos, random);
+        gerarComprasRecebidasHistoricas(pecasParaMovimentacao);
         gerarSolicitacoesCompraParaEstoqueBaixo(pecas);
 
         return ResponseEntity.ok(Map.of("mensagem", "Dados de demonstracao resetados com sucesso."));
@@ -495,6 +499,58 @@ public class AdminController {
             int quantidadeNecessaria = (peca.getEstoqueMinimo() - peca.getQuantidadeAtual()) + peca.getEstoqueMinimo();
             solicitacaoCompraService.criar(peca.getId(), null, quantidadeNecessaria, fornecedor, null);
         }
+    }
+
+    // Random proprio (SEED + 1) para nao consumir a sequencia do Random(SEED) usada nos demais geradores
+    private void gerarComprasRecebidasHistoricas(List<Peca> pecasParaMovimentacao) {
+        Random random = new Random(SEED + 1);
+        LocalDateTime agora = LocalDateTime.now();
+
+        for (int mesesAtras = 0; mesesAtras < 12; mesesAtras++) {
+            Peca peca = pecasParaMovimentacao.get(random.nextInt(pecasParaMovimentacao.size()));
+            int quantidadeNecessaria = peca.getQuantidadeAtual() + 5 + random.nextInt(26);
+            String fornecedor = FORNECEDORES_TERCEIRO.get(mesesAtras % FORNECEDORES_TERCEIRO.size());
+
+            BigDecimal custoBase = peca.getCustoUnitario() == null ? new BigDecimal("50.00") : peca.getCustoUnitario();
+            BigDecimal fator = BigDecimal.valueOf(90 + random.nextInt(21)).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+            BigDecimal valor = custoBase
+                    .multiply(BigDecimal.valueOf(quantidadeNecessaria))
+                    .multiply(fator)
+                    .setScale(2, RoundingMode.HALF_UP);
+
+            YearMonth mesAlvo = YearMonth.from(agora).minusMonths(mesesAtras);
+            int ultimoDiaSorteavel = mesesAtras == 0
+                    ? Math.max(1, agora.getDayOfMonth() - 1)
+                    : mesAlvo.lengthOfMonth();
+            LocalDateTime dataRecebimento = mesAlvo.atDay(1 + random.nextInt(ultimoDiaSorteavel))
+                    .atTime(8 + random.nextInt(10), random.nextInt(60));
+            LocalDateTime limite = agora.minusDays(1);
+            if (dataRecebimento.isAfter(limite)) {
+                dataRecebimento = limite;
+            }
+
+            SolicitacaoCompra solicitacao = solicitacaoCompraService.criar(
+                    peca.getId(), null, quantidadeNecessaria, fornecedor, null
+            );
+            SolicitacaoCompra recebida = solicitacaoCompraService.marcarComoRecebida(solicitacao.getId(), valor);
+            definirDataRecebimentoHistorica(recebida, dataRecebimento);
+        }
+    }
+
+    // marcarComoRecebida grava dataRecebimento = now() e a entrada gerada usa dataHora updatable=false: UPDATE nativo
+    private void definirDataRecebimentoHistorica(SolicitacaoCompra solicitacao, LocalDateTime dataRecebimento) {
+        entityManager.flush();
+        entityManager.createNativeQuery("UPDATE solicitacao_compra SET data_recebimento = :data WHERE id = :id")
+                .setParameter("data", dataRecebimento)
+                .setParameter("id", solicitacao.getId())
+                .executeUpdate();
+        solicitacao.setDataRecebimento(dataRecebimento);
+
+        entityManager.createNativeQuery(
+                        "UPDATE movimentacao_estoque SET data_hora = :data WHERE tipo = 'ENTRADA' AND observacao = :observacao")
+                .setParameter("data", dataRecebimento)
+                .setParameter("observacao", "Entrada referente à solicitação de compra #" + solicitacao.getId())
+                .executeUpdate();
     }
 
     // ------------------------------------------------------------------
