@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
+import java.util.Optional;
 
 public interface ServicoTerceiroRepository extends JpaRepository<ServicoTerceiro, Long> {
 
@@ -21,8 +22,12 @@ public interface ServicoTerceiroRepository extends JpaRepository<ServicoTerceiro
     @EntityGraph(attributePaths = "manutencao")
     Page<ServicoTerceiro> findAll(Pageable pageable);
 
+    @Override
+    @EntityGraph(attributePaths = "manutencao")
+    Optional<ServicoTerceiro> findById(Long id);
+
     @Query("""
-            SELECT COALESCE(SUM(st.valor), 0)
+            SELECT COALESCE(SUM(COALESCE(st.valorFinal, st.valorApurado)), 0)
             FROM ServicoTerceiro st
             WHERE st.manutencao.status = br.com.joaovitor.gestaomanutencao.model.StatusManutencao.CONCLUIDA
               AND MONTH(st.manutencao.dataConclusao) = :mes
@@ -34,7 +39,7 @@ public interface ServicoTerceiroRepository extends JpaRepository<ServicoTerceiro
     );
 
     @Query("""
-            SELECT COALESCE(SUM(st.valor), 0)
+            SELECT COALESCE(SUM(COALESCE(st.valorFinal, st.valorApurado)), 0)
             FROM ServicoTerceiro st
             WHERE st.manutencao.status = br.com.joaovitor.gestaomanutencao.model.StatusManutencao.CONCLUIDA
               AND YEAR(st.manutencao.dataConclusao) = :ano
@@ -42,7 +47,7 @@ public interface ServicoTerceiroRepository extends JpaRepository<ServicoTerceiro
     BigDecimal somarValorServicoTerceiroPorAno(@Param("ano") Integer ano);
 
     @Query("""
-            SELECT COALESCE(SUM(st.valor), 0)
+            SELECT COALESCE(SUM(COALESCE(st.valorFinal, st.valorApurado)), 0)
             FROM ServicoTerceiro st
             WHERE st.manutencao.status = br.com.joaovitor.gestaomanutencao.model.StatusManutencao.CONCLUIDA
               AND st.manutencao.maquina.id = :maquinaId
@@ -56,7 +61,7 @@ public interface ServicoTerceiroRepository extends JpaRepository<ServicoTerceiro
     );
 
     @Query("""
-            SELECT COALESCE(SUM(st.valor), 0)
+            SELECT COALESCE(SUM(COALESCE(st.valorFinal, st.valorApurado)), 0)
             FROM ServicoTerceiro st
             WHERE st.manutencao.status = br.com.joaovitor.gestaomanutencao.model.StatusManutencao.CONCLUIDA
               AND st.manutencao.maquina.id = :maquinaId
@@ -68,7 +73,7 @@ public interface ServicoTerceiroRepository extends JpaRepository<ServicoTerceiro
     );
 
     @Query("""
-            SELECT COALESCE(SUM(st.valor), 0)
+            SELECT COALESCE(SUM(COALESCE(st.valorFinal, st.valorApurado)), 0)
             FROM ServicoTerceiro st
             WHERE st.manutencao.status = br.com.joaovitor.gestaomanutencao.model.StatusManutencao.CONCLUIDA
               AND st.manutencao.maquina.id = :maquinaId

@@ -32,11 +32,19 @@ public class ServicoTerceiro {
     @JoinColumn(name = "manutencao_id", nullable = false)
     private Manutencao manutencao;
 
-    @Column(nullable = false)
-    private BigDecimal valor;
+    @Column(name = "valor", nullable = false)
+    private BigDecimal valorApurado;
+
+    private BigDecimal horasTrabalhadas;
+
+    private BigDecimal valorHora;
+
+    private BigDecimal valorFinal;
 
     @Column(nullable = false)
     private String descricao;
 
     private String fornecedor;
+
+    private String observacao;
 }
