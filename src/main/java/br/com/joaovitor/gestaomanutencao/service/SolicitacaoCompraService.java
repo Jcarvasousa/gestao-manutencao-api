@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -103,6 +104,15 @@ public class SolicitacaoCompraService {
         }
 
         solicitacaoCompra.setValorOrcamento(valorOrcamento);
+
+        BigDecimal custoUnitario = valorOrcamento.divide(
+                BigDecimal.valueOf(solicitacaoCompra.getQuantidadeNecessaria()),
+                2,
+                RoundingMode.HALF_UP
+        );
+        Peca peca = solicitacaoCompra.getPeca();
+        peca.setCustoUnitario(custoUnitario);
+        pecaRepository.save(peca);
 
         movimentacaoEstoqueService.registrarEntrada(
                 solicitacaoCompra.getPeca().getId(),

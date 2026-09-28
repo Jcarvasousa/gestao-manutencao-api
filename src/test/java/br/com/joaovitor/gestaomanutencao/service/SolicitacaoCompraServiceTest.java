@@ -213,6 +213,73 @@ class SolicitacaoCompraServiceTest {
         verify(solicitacaoCompraRepository, never()).save(any(SolicitacaoCompra.class));
     }
 
+    @Test
+    void marcarComoRecebidaDeveGravarCustoUnitarioNaPeca() {
+        Peca peca = peca(0);
+        SolicitacaoCompra solicitacao = solicitacaoPendente(peca, 15);
+        when(solicitacaoCompraRepository.findById(1L)).thenReturn(Optional.of(solicitacao));
+        when(solicitacaoCompraRepository.save(any(SolicitacaoCompra.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.marcarComoRecebida(1L, new BigDecimal("800.00"));
+
+        assertEquals(new BigDecimal("53.33"), peca.getCustoUnitario());
+        verify(pecaRepository).save(peca);
+    }
+
+    @Test
+    void marcarComoRecebidaDeveArredondarCustoUnitarioParaBaixoEParaCima() {
+        Peca pecaBaixo = peca(0);
+        when(solicitacaoCompraRepository.findById(1L))
+                .thenReturn(Optional.of(solicitacaoPendente(pecaBaixo, 3)));
+        when(solicitacaoCompraRepository.save(any(SolicitacaoCompra.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.marcarComoRecebida(1L, new BigDecimal("100.00"));
+
+        assertEquals(new BigDecimal("33.33"), pecaBaixo.getCustoUnitario());
+
+        Peca pecaCima = peca(0);
+        when(solicitacaoCompraRepository.findById(2L))
+                .thenReturn(Optional.of(solicitacaoPendente(pecaCima, 3)));
+
+        service.marcarComoRecebida(2L, new BigDecimal("200.00"));
+
+        assertEquals(new BigDecimal("66.67"), pecaCima.getCustoUnitario());
+    }
+
+    @Test
+    void marcarComoRecebidaNaoDeveAlterarCustoQuandoStatusForRecebida() {
+        assertCustoPreservadoParaStatus(StatusSolicitacaoCompra.RECEBIDA);
+    }
+
+    @Test
+    void marcarComoRecebidaNaoDeveAlterarCustoQuandoStatusForCancelada() {
+        assertCustoPreservadoParaStatus(StatusSolicitacaoCompra.CANCELADA);
+    }
+
+    private void assertCustoPreservadoParaStatus(StatusSolicitacaoCompra status) {
+        Peca peca = peca(0);
+        peca.setCustoUnitario(new BigDecimal("10.00"));
+        SolicitacaoCompra solicitacao = solicitacao(1L, status);
+        solicitacao.setPeca(peca);
+        solicitacao.setQuantidadeNecessaria(15);
+        when(solicitacaoCompraRepository.findById(1L)).thenReturn(Optional.of(solicitacao));
+
+        assertThrows(SolicitacaoNaoPodeSerRecebidaException.class,
+                () -> service.marcarComoRecebida(1L, new BigDecimal("800.00")));
+
+        assertEquals(new BigDecimal("10.00"), peca.getCustoUnitario());
+        verify(pecaRepository, never()).save(any(Peca.class));
+    }
+
+    private SolicitacaoCompra solicitacaoPendente(Peca peca, int quantidadeNecessaria) {
+        SolicitacaoCompra solicitacao = solicitacao(1L, StatusSolicitacaoCompra.PEDIDO_REALIZADO);
+        solicitacao.setPeca(peca);
+        solicitacao.setQuantidadeNecessaria(quantidadeNecessaria);
+        return solicitacao;
+    }
+
     private Peca peca(int quantidadeAtual) {
         Peca peca = new Peca();
         peca.setId(1L);
