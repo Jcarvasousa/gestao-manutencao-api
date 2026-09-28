@@ -21,7 +21,9 @@ import java.math.BigDecimal;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
@@ -101,6 +103,27 @@ class MovimentacaoEstoqueServiceTest {
         assertEquals(manutencao, resultado.getManutencao());
         assertEquals("Uso na manutenção", resultado.getObservacao());
         assertEquals(new BigDecimal("12.50"), resultado.getCustoUnitarioMomento());
+        verify(pecaRepository).save(peca);
+        verify(movimentacaoEstoqueRepository).save(resultado);
+    }
+
+    @Test
+    void registrarSaidaDevePermitirPecaSemCustoUnitarioGravandoCustoNulo() {
+        Peca peca = peca(5);
+        peca.setCustoUnitario(null);
+        Manutencao manutencao = manutencao(StatusManutencao.ABERTA);
+        when(pecaRepository.findById(1L)).thenReturn(Optional.of(peca));
+        when(manutencaoRepository.findById(2L)).thenReturn(Optional.of(manutencao));
+        when(movimentacaoEstoqueRepository.save(any(MovimentacaoEstoque.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        MovimentacaoEstoque resultado = assertDoesNotThrow(
+                () -> service.registrarSaida(1L, 2L, 2, "Uso na manutenção")
+        );
+
+        assertNull(resultado.getCustoUnitarioMomento());
+        assertEquals(TipoMovimentacao.SAIDA, resultado.getTipo());
+        assertEquals(3, peca.getQuantidadeAtual());
         verify(pecaRepository).save(peca);
         verify(movimentacaoEstoqueRepository).save(resultado);
     }
