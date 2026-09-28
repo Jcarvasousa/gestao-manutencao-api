@@ -35,10 +35,15 @@ public class TecnicoController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<TecnicoResponseDTO>> listarTodos(Pageable pageable) {
-        return ResponseEntity.ok(
-                tecnicoRepository.findAll(pageable).map(TecnicoResponseDTO::fromEntity)
-        );
+    public ResponseEntity<Page<TecnicoResponseDTO>> listarTodos(
+            Pageable pageable,
+            @RequestParam(required = false) String nome
+    ) {
+        Page<Tecnico> tecnicos = (nome == null || nome.isBlank())
+                ? tecnicoRepository.findAll(pageable)
+                : tecnicoRepository.findByNomeContainingIgnoreCase(nome.trim(), pageable);
+
+        return ResponseEntity.ok(tecnicos.map(TecnicoResponseDTO::fromEntity));
     }
 
     @GetMapping("/{id}")
