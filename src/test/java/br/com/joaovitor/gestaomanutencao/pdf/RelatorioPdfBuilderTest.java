@@ -137,7 +137,8 @@ class RelatorioPdfBuilderTest {
 
         assertBytesPdfValidos(pdf);
         assertThat(texto).contains("R$ 1.800,00");
-        assertThat(texto).contains("Ano: 2026");
+        assertThat(texto).contains("Período: 2026");
+        assertThat(texto).doesNotContain("Período: Ano:");
     }
 
     @Test
@@ -223,6 +224,136 @@ class RelatorioPdfBuilderTest {
         assertBytesPdfValidos(pdf);
         assertThat(texto).contains("Nenhum (todos os setores)");
         assertThat(texto).contains("Sem custos no período");
+    }
+
+    @Test
+    void orcamentoMensalComTudoZeroExibeMensagemDeSemValores() throws Exception {
+        RelatorioOrcamentoMensalDTO dto = new RelatorioOrcamentoMensalDTO(
+                6, 2026, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO
+        );
+
+        byte[] pdf = builder.orcamentoMensal(dto);
+        String texto = extrairTexto(pdf);
+
+        assertBytesPdfValidos(pdf);
+        assertThat(texto).contains("Sem valores no período");
+        assertThat(texto).doesNotContain("Sem custos no período");
+    }
+
+    @Test
+    void orcamentoAnualComTudoZeroExibeMensagemDeSemValores() throws Exception {
+        RelatorioOrcamentoAnualDTO dto = new RelatorioOrcamentoAnualDTO(
+                2026, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO
+        );
+
+        byte[] pdf = builder.orcamentoAnual(dto);
+        String texto = extrairTexto(pdf);
+
+        assertBytesPdfValidos(pdf);
+        assertThat(texto).contains("Sem valores no período");
+        assertThat(texto).doesNotContain("Sem custos no período");
+    }
+
+    @Test
+    void relatorioCurtoTemUmaUnicaPaginaComRodapeCorreto() throws Exception {
+        RelatorioCustoMensalDTO dto = new RelatorioCustoMensalDTO(
+                3, 2026, new BigDecimal("1940.52"), new BigDecimal("798.26"), new BigDecimal("2738.78")
+        );
+
+        byte[] pdf = builder.custoMensal(dto);
+        String texto = extrairTexto(pdf);
+
+        assertBytesPdfValidos(pdf);
+        assertThat(contarPaginas(pdf)).isEqualTo(1);
+        assertThat(texto).contains("Página 1 de 1");
+    }
+
+    @Test
+    void custoMensalCabeEmUmaUnicaPagina() throws Exception {
+        RelatorioCustoMensalDTO dto = new RelatorioCustoMensalDTO(
+                3, 2026, new BigDecimal("1940.52"), new BigDecimal("798.26"), new BigDecimal("2738.78")
+        );
+
+        byte[] pdf = builder.custoMensal(dto);
+
+        assertThat(contarPaginas(pdf)).isEqualTo(1);
+    }
+
+    @Test
+    void orcamentoMensalCabeEmUmaUnicaPagina() throws Exception {
+        RelatorioOrcamentoMensalDTO dto = new RelatorioOrcamentoMensalDTO(
+                6, 2026, new BigDecimal("10000.00"), new BigDecimal("4872.34"),
+                new BigDecimal("5127.66"), new BigDecimal("48.72")
+        );
+
+        byte[] pdf = builder.orcamentoMensal(dto);
+
+        assertThat(contarPaginas(pdf)).isEqualTo(1);
+    }
+
+    @Test
+    void orcamentoAnualCabeEmUmaUnicaPagina() throws Exception {
+        RelatorioOrcamentoAnualDTO dto = new RelatorioOrcamentoAnualDTO(
+                2026, new BigDecimal("120000.00"), new BigDecimal("58432.10"),
+                new BigDecimal("61567.90"), new BigDecimal("48.69")
+        );
+
+        byte[] pdf = builder.orcamentoAnual(dto);
+
+        assertThat(contarPaginas(pdf)).isEqualTo(1);
+    }
+
+    @Test
+    void custoSetoresComCincoSetoresCabeEmUmaUnicaPagina() throws Exception {
+        List<RelatorioCustoSetorDTO> setores = List.of(
+                new RelatorioCustoSetorDTO(1L, "Produção", true, 3, new BigDecimal("1000.00"), new BigDecimal("500.00"), new BigDecimal("1500.00"), new BigDecimal("30.00")),
+                new RelatorioCustoSetorDTO(2L, "Manutenção", true, 2, new BigDecimal("600.00"), new BigDecimal("400.00"), new BigDecimal("1000.00"), new BigDecimal("20.00")),
+                new RelatorioCustoSetorDTO(3L, "Logística", true, 4, new BigDecimal("500.00"), new BigDecimal("300.00"), new BigDecimal("800.00"), new BigDecimal("16.00")),
+                new RelatorioCustoSetorDTO(4L, "Administrativo", false, 1, new BigDecimal("400.00"), new BigDecimal("200.00"), new BigDecimal("600.00"), new BigDecimal("12.00")),
+                new RelatorioCustoSetorDTO(5L, "Sem setor", true, 6, new BigDecimal("700.00"), new BigDecimal("400.00"), new BigDecimal("1100.00"), new BigDecimal("22.00"))
+        );
+        RelatorioCustoSetoresResponseDTO dto = new RelatorioCustoSetoresResponseDTO(4, 2026, setores, new BigDecimal("5000.00"));
+
+        byte[] pdf = builder.custoSetores(dto, null);
+        String texto = extrairTexto(pdf);
+
+        assertBytesPdfValidos(pdf);
+        assertThat(contarPaginas(pdf)).isEqualTo(1);
+        assertThat(texto).contains("R$ 5.000,00");
+        assertThat(texto).contains("16");
+    }
+
+    @Test
+    void custoMaquinasComMuitasMaquinasGeraDuasPaginasComRodapeCorreto() throws Exception {
+        List<RelatorioCustoMaquinaDTO> maquinas = new java.util.ArrayList<>();
+        BigDecimal total = BigDecimal.ZERO;
+        for (int i = 1; i <= 25; i++) {
+            BigDecimal pecas = BigDecimal.valueOf(100 * i);
+            BigDecimal maoDeObra = BigDecimal.valueOf(50 * i);
+            BigDecimal valorTotal = pecas.add(maoDeObra);
+            maquinas.add(new RelatorioCustoMaquinaDTO(
+                    (long) i, "MAQ-" + i, 5, 2026, pecas, maoDeObra, valorTotal
+            ));
+            total = total.add(valorTotal);
+        }
+        RelatorioCustoMaquinasResponseDTO dto = new RelatorioCustoMaquinasResponseDTO(maquinas, total);
+
+        byte[] pdf = builder.custoMaquinas(dto, 5, 2026);
+        String texto = extrairTexto(pdf);
+
+        assertBytesPdfValidos(pdf);
+        assertThat(contarPaginas(pdf)).isEqualTo(2);
+        assertThat(texto).contains("Página 1 de 2");
+        assertThat(texto).contains("Página 2 de 2");
+    }
+
+    private int contarPaginas(byte[] pdf) throws IOException {
+        PdfReader reader = new PdfReader(pdf);
+        try {
+            return reader.getNumberOfPages();
+        } finally {
+            reader.close();
+        }
     }
 
     private void assertBytesPdfValidos(byte[] pdf) {

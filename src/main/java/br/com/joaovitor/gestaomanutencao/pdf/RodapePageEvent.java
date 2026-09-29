@@ -77,11 +77,14 @@ class RodapePageEvent extends PdfPageEventHelper {
 
     @Override
     public void onCloseDocument(PdfWriter writer, Document document) {
+        // Em onCloseDocument, o writer já incrementou o contador para a página seguinte
+        // (que nunca chega a existir), então o total real de páginas é getPageNumber() - 1.
+        int totalPaginas = writer.getPageNumber() - 1;
         templateTotalPaginas.beginText();
         templateTotalPaginas.setFontAndSize(baseFont, 8);
         templateTotalPaginas.setColorFill(COR_RODAPE);
         templateTotalPaginas.setTextMatrix(0, 0);
-        templateTotalPaginas.showText(String.valueOf(writer.getPageNumber()));
+        templateTotalPaginas.showText(String.valueOf(totalPaginas));
         templateTotalPaginas.endText();
     }
 }

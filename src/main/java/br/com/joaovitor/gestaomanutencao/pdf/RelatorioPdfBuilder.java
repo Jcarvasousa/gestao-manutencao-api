@@ -47,6 +47,8 @@ public class RelatorioPdfBuilder {
             DateTimeFormatter.ofPattern("dd/MM/yyyy 'às' HH:mm", PT_BR);
     private static final int MAXIMO_MAQUINAS_GRAFICO = 10;
     private static final String SEM_CUSTOS = "Sem custos no período";
+    private static final String SEM_VALORES = "Sem valores no período";
+    private static final String PREFIXO_ANO = "Ano: ";
 
     private static final Color COR_DESTAQUE = new Color(13, 148, 136);
     private static final Color COR_SECUNDARIA = new Color(100, 116, 139);
@@ -56,32 +58,43 @@ public class RelatorioPdfBuilder {
     private static final Color COR_TOTAL_FUNDO = new Color(226, 232, 240);
     private static final Color COR_RESUMO_FUNDO = new Color(240, 253, 250);
 
-    private Font fonteTitulo;
-    private Font fonteSecao;
-    private Font fonteNormal;
-    private Font fonteNormalNegrito;
-    private Font fonteItalico;
-    private Font fonteTabelaCabecalho;
-    private Font fonteTabelaCelula;
-    private Font fonteTabelaTotal;
-    private Font fonteResumoValor;
-    private BaseFont baseFont;
+    // ---------------------------------------------------------------
+    // Fontes (imobiliário local por documento - sem estado compartilhado)
+    // ---------------------------------------------------------------
 
-    private void inicializarFontes() {
+    private record Fontes(
+            BaseFont baseFont,
+            Font titulo,
+            Font secao,
+            Font normal,
+            Font normalNegrito,
+            Font italico,
+            Font tabelaCabecalho,
+            Font tabelaCelula,
+            Font tabelaTotal,
+            Font resumoValor
+    ) {
+    }
+
+    private static Fontes criarFontes() {
+        BaseFont baseFont;
         try {
             baseFont = BaseFont.createFont(BaseFont.HELVETICA, BaseFont.WINANSI, BaseFont.NOT_EMBEDDED);
         } catch (DocumentException | IOException e) {
             throw new IllegalStateException("Não foi possível carregar a fonte do relatório.", e);
         }
-        fonteTitulo = new Font(baseFont, 18, Font.BOLD, Color.WHITE);
-        fonteSecao = new Font(baseFont, 13, Font.BOLD, COR_TEXTO);
-        fonteNormal = new Font(baseFont, 10, Font.NORMAL, COR_TEXTO);
-        fonteNormalNegrito = new Font(baseFont, 10, Font.BOLD, COR_TEXTO);
-        fonteItalico = new Font(baseFont, 10, Font.ITALIC, COR_TEXTO);
-        fonteTabelaCabecalho = new Font(baseFont, 10, Font.BOLD, Color.WHITE);
-        fonteTabelaCelula = new Font(baseFont, 9, Font.NORMAL, COR_TEXTO);
-        fonteTabelaTotal = new Font(baseFont, 10, Font.BOLD, COR_TEXTO);
-        fonteResumoValor = new Font(baseFont, 20, Font.BOLD, COR_DESTAQUE);
+        return new Fontes(
+                baseFont,
+                new Font(baseFont, 18, Font.BOLD, Color.WHITE),
+                new Font(baseFont, 13, Font.BOLD, COR_TEXTO),
+                new Font(baseFont, 10, Font.NORMAL, COR_TEXTO),
+                new Font(baseFont, 10, Font.BOLD, COR_TEXTO),
+                new Font(baseFont, 10, Font.ITALIC, COR_TEXTO),
+                new Font(baseFont, 10, Font.BOLD, Color.WHITE),
+                new Font(baseFont, 9, Font.NORMAL, COR_TEXTO),
+                new Font(baseFont, 10, Font.BOLD, COR_TEXTO),
+                new Font(baseFont, 20, Font.BOLD, COR_DESTAQUE)
+        );
     }
 
     // ---------------------------------------------------------------
@@ -90,20 +103,19 @@ public class RelatorioPdfBuilder {
 
     public byte[] custoMensal(RelatorioCustoMensalDTO dto) throws DocumentException {
         DocumentoPdf pdf = abrirDocumento("Relatório de Custo Mensal");
-        adicionarBlocoIdentificacao(pdf.document(), FormatadorRelatorio.periodo(dto.mes(), dto.ano()), "Nenhum");
-        adicionarResumo(pdf.document(), "Custo total do período", dto.custoTotal(), List.of());
-        adicionarComoLer(pdf.document(), List.of(
+        adicionarBlocoIdentificacao(pdf, FormatadorRelatorio.periodo(dto.mes(), dto.ano()), "Nenhum");
+        adicionarResumo(pdf, "Custo total do período", dto.custoTotal(), List.of());
+        adicionarComoLer(pdf, List.of(
                 "Este relatório considera apenas manutenções concluídas no mês e ano informados, com base na data de conclusão.",
                 "O custo de peças é calculado pelas saídas de estoque usadas nas manutenções, descontando as devoluções, pelo custo unitário registrado no momento da saída.",
                 "A mão de obra (técnicos + terceiros) soma as horas dos técnicos internos multiplicadas pelo custo da hora de cada um, mais os serviços de terceiros (valor final quando informado, ou valor apurado caso contrário).",
                 "Manutenções em andamento ou canceladas não entram nestes cálculos."
         ));
 
-        adicionarGraficoEmpilhado(pdf.document(), pdf.writer(), "Peças", dto.custoPecas(),
-                "Mão de obra (técnicos + terceiros)", dto.custoMaoDeObra());
+        adicionarGraficoEmpilhado(pdf, "Peças", dto.custoPecas(), "Mão de obra (técnicos + terceiros)", dto.custoMaoDeObra(), SEM_CUSTOS);
 
         adicionarTabelaItemValor(
-                pdf.document(),
+                pdf,
                 "Valor",
                 List.of(
                         linha("Custo de Peças", dto.custoPecas()),
@@ -118,22 +130,21 @@ public class RelatorioPdfBuilder {
 
     public byte[] orcamentoMensal(RelatorioOrcamentoMensalDTO dto) throws DocumentException {
         DocumentoPdf pdf = abrirDocumento("Relatório de Orçamento Mensal");
-        adicionarBlocoIdentificacao(pdf.document(), FormatadorRelatorio.periodo(dto.mes(), dto.ano()), "Nenhum");
-        adicionarResumo(pdf.document(), "Valor realizado no período", dto.valorRealizado(), List.of(
+        adicionarBlocoIdentificacao(pdf, FormatadorRelatorio.periodo(dto.mes(), dto.ano()), "Nenhum");
+        adicionarResumo(pdf, "Valor realizado no período", dto.valorRealizado(), List.of(
                 linhaFormatada("Valor planejado", FormatadorRelatorio.moeda(dto.valorPlanejado())),
                 linhaFormatada("Percentual utilizado", FormatadorRelatorio.percentual(dto.percentualUtilizado()))
         ));
-        adicionarComoLer(pdf.document(), List.of(
+        adicionarComoLer(pdf, List.of(
                 "Este relatório compara o valor planejado no orçamento do mês com o valor efetivamente realizado no mesmo período.",
                 "O valor realizado soma as compras de peças recebidas no período (pelo valor pago) mais os serviços de terceiros de manutenções concluídas no período; salário de técnico não entra nesse total.",
                 "Esse critério é diferente do custo de manutenção, que mede o consumo de peças do estoque e a mão de obra das manutenções concluídas, e não o que foi efetivamente pago no período.",
                 "O saldo disponível é o valor planejado menos o valor realizado, podendo ficar negativo se o realizado ultrapassar o planejado."
         ));
 
-        adicionarGraficoComparativo(pdf.document(), pdf.writer(), "Planejado", dto.valorPlanejado(),
-                "Realizado", dto.valorRealizado(), dto.percentualUtilizado());
+        adicionarGraficoComparativo(pdf, "Planejado", dto.valorPlanejado(), "Realizado", dto.valorRealizado(), dto.percentualUtilizado());
 
-        adicionarTabelaOrcamento(pdf.document(), dto.valorPlanejado(), dto.valorRealizado(),
+        adicionarTabelaOrcamento(pdf, dto.valorPlanejado(), dto.valorRealizado(),
                 dto.saldoDisponivel(), dto.percentualUtilizado());
 
         return fecharDocumento(pdf);
@@ -141,22 +152,21 @@ public class RelatorioPdfBuilder {
 
     public byte[] orcamentoAnual(RelatorioOrcamentoAnualDTO dto) throws DocumentException {
         DocumentoPdf pdf = abrirDocumento("Relatório de Orçamento Anual");
-        adicionarBlocoIdentificacao(pdf.document(), FormatadorRelatorio.periodo(null, dto.ano()), "Nenhum");
-        adicionarResumo(pdf.document(), "Valor realizado no período", dto.valorRealizadoTotal(), List.of(
+        adicionarBlocoIdentificacao(pdf, FormatadorRelatorio.periodo(null, dto.ano()), "Nenhum");
+        adicionarResumo(pdf, "Valor realizado no período", dto.valorRealizadoTotal(), List.of(
                 linhaFormatada("Valor planejado", FormatadorRelatorio.moeda(dto.valorPlanejadoTotal())),
                 linhaFormatada("Percentual utilizado", FormatadorRelatorio.percentual(dto.percentualUtilizado()))
         ));
-        adicionarComoLer(pdf.document(), List.of(
+        adicionarComoLer(pdf, List.of(
                 "Este relatório compara o valor planejado no orçamento do ano com o valor efetivamente realizado no mesmo período.",
                 "O valor realizado soma as compras de peças recebidas no ano (pelo valor pago) mais os serviços de terceiros de manutenções concluídas no ano; salário de técnico não entra nesse total.",
                 "Esse critério é diferente do custo de manutenção, que mede o consumo de peças do estoque e a mão de obra das manutenções concluídas, e não o que foi efetivamente pago no período.",
                 "O saldo disponível é o valor planejado menos o valor realizado, podendo ficar negativo se o realizado ultrapassar o planejado."
         ));
 
-        adicionarGraficoComparativo(pdf.document(), pdf.writer(), "Planejado", dto.valorPlanejadoTotal(),
-                "Realizado", dto.valorRealizadoTotal(), dto.percentualUtilizado());
+        adicionarGraficoComparativo(pdf, "Planejado", dto.valorPlanejadoTotal(), "Realizado", dto.valorRealizadoTotal(), dto.percentualUtilizado());
 
-        adicionarTabelaOrcamento(pdf.document(), dto.valorPlanejadoTotal(), dto.valorRealizadoTotal(),
+        adicionarTabelaOrcamento(pdf, dto.valorPlanejadoTotal(), dto.valorRealizadoTotal(),
                 dto.saldoDisponivel(), dto.percentualUtilizado());
 
         return fecharDocumento(pdf);
@@ -164,19 +174,18 @@ public class RelatorioPdfBuilder {
 
     public byte[] gastoRealizado(RelatorioGastoRealizadoDTO dto) throws DocumentException {
         DocumentoPdf pdf = abrirDocumento("Relatório de Gasto Realizado");
-        adicionarBlocoIdentificacao(pdf.document(), FormatadorRelatorio.periodo(dto.mes(), dto.ano()), "Nenhum");
-        adicionarResumo(pdf.document(), "Gasto total do período", dto.valorGastoTotal(), List.of());
-        adicionarComoLer(pdf.document(), List.of(
+        adicionarBlocoIdentificacao(pdf, FormatadorRelatorio.periodo(dto.mes(), dto.ano()), "Nenhum");
+        adicionarResumo(pdf, "Gasto total do período", dto.valorGastoTotal(), List.of());
+        adicionarComoLer(pdf, List.of(
                 "Este relatório soma os gastos efetivamente realizados no período: compras de peças recebidas (valor pago) e serviços de terceiros de manutenções concluídas.",
                 "Salário de técnico interno não entra nesse total, pois não representa um gasto pontual pago no período.",
                 "Esse valor é diferente do custo de manutenção, que mede o consumo de peças do estoque (saídas menos devoluções) e a mão de obra das manutenções concluídas, independentemente de quando a compra foi paga."
         ));
 
-        adicionarGraficoEmpilhado(pdf.document(), pdf.writer(), "Peças compradas", dto.valorGastoPecas(),
-                "Serviços de terceiros", dto.valorGastoServicoTerceiro());
+        adicionarGraficoEmpilhado(pdf, "Peças compradas", dto.valorGastoPecas(), "Serviços de terceiros", dto.valorGastoServicoTerceiro(), SEM_CUSTOS);
 
         adicionarTabelaItemValor(
-                pdf.document(),
+                pdf,
                 "Valor",
                 List.of(
                         linha("Peças Compradas", dto.valorGastoPecas()),
@@ -204,12 +213,12 @@ public class RelatorioPdfBuilder {
     private byte[] custoMaquinaUnica(RelatorioCustoMaquinaDTO dto, String titulo) throws DocumentException {
         DocumentoPdf pdf = abrirDocumento(titulo);
         adicionarBlocoIdentificacao(
-                pdf.document(),
+                pdf,
                 FormatadorRelatorio.periodo(dto.mes(), dto.ano()),
                 "Máquina: " + dto.maquinaCodigo()
         );
-        adicionarResumo(pdf.document(), "Custo total do período", dto.custoTotal(), List.of());
-        adicionarComoLer(pdf.document(), List.of(
+        adicionarResumo(pdf, "Custo total do período", dto.custoTotal(), List.of());
+        adicionarComoLer(pdf, List.of(
                 "Este relatório considera apenas manutenções concluídas dessa máquina no período informado, com base na data de conclusão.",
                 "O custo de peças é calculado pelas saídas de estoque usadas nas manutenções da máquina, descontando as devoluções, pelo custo unitário registrado no momento da saída.",
                 "A mão de obra (técnicos + terceiros) soma as horas dos técnicos internos multiplicadas pelo custo da hora de cada um, mais os serviços de terceiros (valor final quando informado, ou valor apurado caso contrário).",
@@ -217,7 +226,7 @@ public class RelatorioPdfBuilder {
         ));
 
         adicionarTabelaItemValor(
-                pdf.document(),
+                pdf,
                 "Valor",
                 List.of(
                         linha("Custo de Peças", dto.custoPecas()),
@@ -237,9 +246,9 @@ public class RelatorioPdfBuilder {
                 ? "Nenhuma máquina informada"
                 : "Máquinas: " + String.join(", ", dto.maquinas().stream().map(RelatorioCustoMaquinaDTO::maquinaCodigo).toList());
 
-        adicionarBlocoIdentificacao(pdf.document(), FormatadorRelatorio.periodo(mes, ano), filtros);
-        adicionarResumo(pdf.document(), "Custo total do período", dto.totalGeral(), List.of());
-        adicionarComoLer(pdf.document(), List.of(
+        adicionarBlocoIdentificacao(pdf, FormatadorRelatorio.periodo(mes, ano), filtros);
+        adicionarResumo(pdf, "Custo total do período", dto.totalGeral(), List.of());
+        adicionarComoLer(pdf, List.of(
                 "Este relatório soma o custo de manutenção das máquinas selecionadas, considerando apenas manutenções concluídas no período informado.",
                 "O custo de peças é calculado pelas saídas de estoque menos as devoluções, pelo custo unitário do momento da saída; a mão de obra soma horas de técnicos mais serviços de terceiros.",
                 "Manutenções em andamento ou canceladas não entram nestes cálculos.",
@@ -256,28 +265,34 @@ public class RelatorioPdfBuilder {
         String notaGrafico = ordenadasPorCusto.size() > MAXIMO_MAQUINAS_GRAFICO
                 ? "Exibindo as " + MAXIMO_MAQUINAS_GRAFICO + " maiores de " + ordenadasPorCusto.size() + " máquinas."
                 : null;
-        adicionarGraficoBarrasMultiplas(pdf.document(), pdf.writer(), itensGrafico, notaGrafico);
+        adicionarGraficoBarrasMultiplas(pdf, itensGrafico, notaGrafico);
 
+        BigDecimal totalPecas = BigDecimal.ZERO;
+        BigDecimal totalMaoDeObra = BigDecimal.ZERO;
         List<PdfPCell[]> linhas = new ArrayList<>();
         for (RelatorioCustoMaquinaDTO maquina : dto.maquinas()) {
+            BigDecimal pecas = maquina.custoPecas() == null ? BigDecimal.ZERO : maquina.custoPecas();
+            BigDecimal maoDeObra = maquina.custoMaoDeObra() == null ? BigDecimal.ZERO : maquina.custoMaoDeObra();
+            totalPecas = totalPecas.add(pecas);
+            totalMaoDeObra = totalMaoDeObra.add(maoDeObra);
             linhas.add(new PdfPCell[]{
-                    celulaTexto(maquina.maquinaCodigo(), Element.ALIGN_LEFT),
-                    celulaTexto(FormatadorRelatorio.moeda(maquina.custoPecas()), Element.ALIGN_RIGHT),
-                    celulaTexto(FormatadorRelatorio.moeda(maquina.custoMaoDeObra()), Element.ALIGN_RIGHT),
-                    celulaTexto(FormatadorRelatorio.moeda(maquina.custoTotal()), Element.ALIGN_RIGHT)
+                    celulaTexto(pdf.fontes(), maquina.maquinaCodigo(), Element.ALIGN_LEFT),
+                    celulaTexto(pdf.fontes(), FormatadorRelatorio.moeda(maquina.custoPecas()), Element.ALIGN_RIGHT),
+                    celulaTexto(pdf.fontes(), FormatadorRelatorio.moeda(maquina.custoMaoDeObra()), Element.ALIGN_RIGHT),
+                    celulaTexto(pdf.fontes(), FormatadorRelatorio.moeda(maquina.custoTotal()), Element.ALIGN_RIGHT)
             });
         }
         adicionarTabelaGenerica(
-                pdf.document(),
+                pdf,
                 new String[]{"Código da Máquina", "Custo de Peças", "Mão de obra (técnicos + terceiros)", "Custo Total"},
                 new int[]{Element.ALIGN_LEFT, Element.ALIGN_RIGHT, Element.ALIGN_RIGHT, Element.ALIGN_RIGHT},
                 new float[]{2.5f, 1.7f, 2.2f, 1.7f},
                 linhas,
                 new PdfPCell[]{
-                        celulaTotal("Total Geral", Element.ALIGN_LEFT),
-                        celulaTotal("", Element.ALIGN_RIGHT),
-                        celulaTotal("", Element.ALIGN_RIGHT),
-                        celulaTotal(FormatadorRelatorio.moeda(dto.totalGeral()), Element.ALIGN_RIGHT)
+                        celulaTotal(pdf.fontes(), "Total Geral", Element.ALIGN_LEFT),
+                        celulaTotal(pdf.fontes(), FormatadorRelatorio.moeda(totalPecas), Element.ALIGN_RIGHT),
+                        celulaTotal(pdf.fontes(), FormatadorRelatorio.moeda(totalMaoDeObra), Element.ALIGN_RIGHT),
+                        celulaTotal(pdf.fontes(), FormatadorRelatorio.moeda(dto.totalGeral()), Element.ALIGN_RIGHT)
                 }
         );
 
@@ -294,9 +309,9 @@ public class RelatorioPdfBuilder {
                 .map(RelatorioCustoSetorDTO::setorNome)
                 .toList());
 
-        adicionarBlocoIdentificacao(pdf.document(), FormatadorRelatorio.periodo(dto.mes(), dto.ano()), filtros);
-        adicionarResumo(pdf.document(), "Custo total do período", dto.totalGeral(), List.of());
-        adicionarComoLer(pdf.document(), List.of(
+        adicionarBlocoIdentificacao(pdf, FormatadorRelatorio.periodo(dto.mes(), dto.ano()), filtros);
+        adicionarResumo(pdf, "Custo total do período", dto.totalGeral(), List.of());
+        adicionarComoLer(pdf, List.of(
                 "Este relatório mostra o custo de manutenção por setor, somando os custos das máquinas de cada setor a partir de manutenções concluídas no período informado.",
                 "O custo de peças considera saídas de estoque menos devoluções; a mão de obra (técnicos + terceiros) soma horas de técnicos mais serviços de terceiros.",
                 "O percentual do total é calculado sobre a soma dos setores exibidos neste relatório, não sobre a empresa inteira; por isso a soma pode não fechar exatamente 100% por arredondamento.",
@@ -306,34 +321,42 @@ public class RelatorioPdfBuilder {
         List<ItemBarra> itensGrafico = dto.setores().stream()
                 .map(s -> new ItemBarra(s.setorNome(), s.custoTotal()))
                 .toList();
-        adicionarGraficoBarrasMultiplas(pdf.document(), pdf.writer(), itensGrafico, null);
+        adicionarGraficoBarrasMultiplas(pdf, itensGrafico, null);
 
+        BigDecimal totalPecas = BigDecimal.ZERO;
+        BigDecimal totalMaoDeObra = BigDecimal.ZERO;
+        int totalMaquinas = 0;
         List<PdfPCell[]> linhas = new ArrayList<>();
         for (RelatorioCustoSetorDTO setor : dto.setores()) {
+            BigDecimal pecas = setor.custoPecas() == null ? BigDecimal.ZERO : setor.custoPecas();
+            BigDecimal maoDeObra = setor.custoMaoDeObra() == null ? BigDecimal.ZERO : setor.custoMaoDeObra();
+            totalPecas = totalPecas.add(pecas);
+            totalMaoDeObra = totalMaoDeObra.add(maoDeObra);
+            totalMaquinas += setor.quantidadeMaquinas() == null ? 0 : setor.quantidadeMaquinas();
             linhas.add(new PdfPCell[]{
-                    celulaTexto(setor.setorNome(), Element.ALIGN_LEFT),
-                    celulaTexto(FormatadorRelatorio.simNao(setor.ativo()), Element.ALIGN_CENTER),
-                    celulaTexto(String.valueOf(setor.quantidadeMaquinas()), Element.ALIGN_CENTER),
-                    celulaTexto(FormatadorRelatorio.moeda(setor.custoPecas()), Element.ALIGN_RIGHT),
-                    celulaTexto(FormatadorRelatorio.moeda(setor.custoMaoDeObra()), Element.ALIGN_RIGHT),
-                    celulaTexto(FormatadorRelatorio.moeda(setor.custoTotal()), Element.ALIGN_RIGHT),
-                    celulaTexto(FormatadorRelatorio.percentual(setor.percentualDoTotal()), Element.ALIGN_RIGHT)
+                    celulaTexto(pdf.fontes(), setor.setorNome(), Element.ALIGN_LEFT),
+                    celulaTexto(pdf.fontes(), FormatadorRelatorio.simNao(setor.ativo()), Element.ALIGN_CENTER),
+                    celulaTexto(pdf.fontes(), String.valueOf(setor.quantidadeMaquinas()), Element.ALIGN_CENTER),
+                    celulaTexto(pdf.fontes(), FormatadorRelatorio.moeda(setor.custoPecas()), Element.ALIGN_RIGHT),
+                    celulaTexto(pdf.fontes(), FormatadorRelatorio.moeda(setor.custoMaoDeObra()), Element.ALIGN_RIGHT),
+                    celulaTexto(pdf.fontes(), FormatadorRelatorio.moeda(setor.custoTotal()), Element.ALIGN_RIGHT),
+                    celulaTexto(pdf.fontes(), FormatadorRelatorio.percentual(setor.percentualDoTotal()), Element.ALIGN_RIGHT)
             });
         }
         adicionarTabelaGenerica(
-                pdf.document(),
-                new String[]{"Setor", "Ativo", "Qtd. Máquinas", "Peças", "Mão de obra", "Total", "% do total"},
+                pdf,
+                new String[]{"Setor", "Ativo", "Máquinas", "Peças", "Mão de obra", "Total", "% total"},
                 new int[]{Element.ALIGN_LEFT, Element.ALIGN_CENTER, Element.ALIGN_CENTER, Element.ALIGN_RIGHT, Element.ALIGN_RIGHT, Element.ALIGN_RIGHT, Element.ALIGN_RIGHT},
                 new float[]{2.6f, 0.9f, 1.1f, 1.5f, 1.5f, 1.5f, 1.1f},
                 linhas,
                 new PdfPCell[]{
-                        celulaTotal("Total Geral", Element.ALIGN_LEFT),
-                        celulaTotal("", Element.ALIGN_CENTER),
-                        celulaTotal("", Element.ALIGN_CENTER),
-                        celulaTotal("", Element.ALIGN_RIGHT),
-                        celulaTotal("", Element.ALIGN_RIGHT),
-                        celulaTotal(FormatadorRelatorio.moeda(dto.totalGeral()), Element.ALIGN_RIGHT),
-                        celulaTotal("", Element.ALIGN_RIGHT)
+                        celulaTotal(pdf.fontes(), "Total Geral", Element.ALIGN_LEFT),
+                        celulaTotal(pdf.fontes(), "", Element.ALIGN_CENTER),
+                        celulaTotal(pdf.fontes(), String.valueOf(totalMaquinas), Element.ALIGN_CENTER),
+                        celulaTotal(pdf.fontes(), FormatadorRelatorio.moeda(totalPecas), Element.ALIGN_RIGHT),
+                        celulaTotal(pdf.fontes(), FormatadorRelatorio.moeda(totalMaoDeObra), Element.ALIGN_RIGHT),
+                        celulaTotal(pdf.fontes(), FormatadorRelatorio.moeda(dto.totalGeral()), Element.ALIGN_RIGHT),
+                        celulaTotal(pdf.fontes(), "", Element.ALIGN_RIGHT)
                 }
         );
 
@@ -344,21 +367,23 @@ public class RelatorioPdfBuilder {
     // Estrutura comum do documento
     // ---------------------------------------------------------------
 
-    private record DocumentoPdf(Document document, PdfWriter writer, ByteArrayOutputStream saida) {
+    private record DocumentoPdf(Document document, PdfWriter writer, ByteArrayOutputStream saida, Fontes fontes,
+                                 ZonedDateTime dataGeracao) {
     }
 
     private record ItemBarra(String rotulo, BigDecimal valor) {
     }
 
     private DocumentoPdf abrirDocumento(String titulo) throws DocumentException {
-        inicializarFontes();
+        Fontes fontes = criarFontes();
+        ZonedDateTime dataGeracao = ZonedDateTime.now(FUSO_SAO_PAULO);
         ByteArrayOutputStream saida = new ByteArrayOutputStream();
-        Document document = new Document(PageSize.A4, 36, 36, 92, 50);
+        Document document = new Document(PageSize.A4, 36, 36, 50, 50);
         PdfWriter writer = PdfWriter.getInstance(document, saida);
-        writer.setPageEvent(new RodapePageEvent(NOME_SISTEMA, ZonedDateTime.now(FUSO_SAO_PAULO)));
+        writer.setPageEvent(new RodapePageEvent(NOME_SISTEMA, dataGeracao));
         document.open();
-        adicionarFaixaCabecalho(document, titulo);
-        return new DocumentoPdf(document, writer, saida);
+        adicionarFaixaCabecalho(document, fontes, titulo);
+        return new DocumentoPdf(document, writer, saida, fontes, dataGeracao);
     }
 
     private byte[] fecharDocumento(DocumentoPdf pdf) {
@@ -366,31 +391,41 @@ public class RelatorioPdfBuilder {
         return pdf.saida().toByteArray();
     }
 
-    private void adicionarFaixaCabecalho(Document document, String titulo) throws DocumentException {
+    private void adicionarFaixaCabecalho(Document document, Fontes fontes, String titulo) throws DocumentException {
         PdfPTable faixa = new PdfPTable(1);
         faixa.setWidthPercentage(100);
-        PdfPCell celula = new PdfPCell(new Phrase(titulo, fonteTitulo));
+        PdfPCell celula = new PdfPCell(new Phrase(titulo, fontes.titulo()));
         celula.setBackgroundColor(COR_DESTAQUE);
         celula.setBorder(0);
         celula.setPadding(14);
         celula.setHorizontalAlignment(Element.ALIGN_LEFT);
         faixa.addCell(celula);
         document.add(faixa);
-        document.add(espacador());
+        document.add(espacador(fontes));
     }
 
-    private void adicionarBlocoIdentificacao(Document document, String periodoDescricao, String filtrosDescricao)
+    private void adicionarBlocoIdentificacao(DocumentoPdf pdf, String periodoDescricao, String filtrosDescricao)
             throws DocumentException {
-        document.add(paragrafoRotuloValor("Período: ", periodoDescricao));
-        document.add(paragrafoRotuloValor("Filtros aplicados: ", filtrosDescricao));
-        String dataGeracao = FORMATO_DATA_HORA.format(ZonedDateTime.now(FUSO_SAO_PAULO));
-        document.add(paragrafoRotuloValor("Gerado em: ", dataGeracao + " (horário de Brasília)"));
-        document.add(espacador());
+        Document document = pdf.document();
+        Fontes fontes = pdf.fontes();
+        document.add(paragrafoRotuloValor(fontes, "Período: ", removerPrefixoAno(periodoDescricao)));
+        document.add(paragrafoRotuloValor(fontes, "Filtros aplicados: ", filtrosDescricao));
+        String dataGeracao = FORMATO_DATA_HORA.format(pdf.dataGeracao());
+        document.add(paragrafoRotuloValor(fontes, "Gerado em: ", dataGeracao + " (horário de Brasília)"));
+        document.add(espacador(fontes));
     }
 
-    private void adicionarResumo(Document document, String rotuloPrincipal, BigDecimal valorPrincipal,
+    private String removerPrefixoAno(String periodoDescricao) {
+        return periodoDescricao.startsWith(PREFIXO_ANO)
+                ? periodoDescricao.substring(PREFIXO_ANO.length())
+                : periodoDescricao;
+    }
+
+    private void adicionarResumo(DocumentoPdf pdf, String rotuloPrincipal, BigDecimal valorPrincipal,
                                   List<String[]> linhasExtras) throws DocumentException {
-        document.add(tituloSecao("Resumo"));
+        Document document = pdf.document();
+        Fontes fontes = pdf.fontes();
+        document.add(tituloSecao(fontes, "Resumo"));
 
         PdfPTable caixa = new PdfPTable(1);
         caixa.setWidthPercentage(100);
@@ -401,114 +436,120 @@ public class RelatorioPdfBuilder {
         celula.setPadding(10);
 
         Paragraph principal = new Paragraph();
-        principal.add(new Chunk(rotuloPrincipal + ": ", fonteNormalNegrito));
-        principal.add(new Chunk(FormatadorRelatorio.moeda(valorPrincipal), fonteResumoValor));
+        principal.add(new Chunk(rotuloPrincipal + ": ", fontes.normalNegrito()));
+        principal.add(new Chunk(FormatadorRelatorio.moeda(valorPrincipal), fontes.resumoValor()));
         celula.addElement(principal);
 
         for (String[] linha : linhasExtras) {
             Paragraph extra = new Paragraph();
-            extra.add(new Chunk(linha[0] + ": ", fonteNormalNegrito));
-            extra.add(new Chunk(linha[1], fonteNormal));
-            extra.setSpacingBefore(4);
+            extra.add(new Chunk(linha[0] + ": ", fontes.normalNegrito()));
+            extra.add(new Chunk(linha[1], fontes.normal()));
+            extra.setSpacingBefore(3);
             celula.addElement(extra);
         }
 
         caixa.addCell(celula);
         document.add(caixa);
-        document.add(espacador());
+        document.add(espacador(fontes));
     }
 
-    private void adicionarComoLer(Document document, List<String> frases) throws DocumentException {
-        document.add(tituloSecao("Como ler este relatório"));
+    private void adicionarComoLer(DocumentoPdf pdf, List<String> frases) throws DocumentException {
+        Document document = pdf.document();
+        Fontes fontes = pdf.fontes();
+        document.add(tituloSecao(fontes, "Como ler este relatório"));
         for (String frase : frases) {
-            Paragraph p = new Paragraph("• " + frase, fonteNormal);
-            p.setSpacingAfter(3);
+            Paragraph p = new Paragraph("• " + frase, fontes.normal());
+            p.setSpacingAfter(2);
             document.add(p);
         }
-        document.add(espacador());
+        document.add(espacador(fontes));
     }
 
-    private Paragraph tituloSecao(String texto) {
-        Paragraph p = new Paragraph(texto, fonteSecao);
-        p.setSpacingAfter(6);
+    private Paragraph tituloSecao(Fontes fontes, String texto) {
+        Paragraph p = new Paragraph(texto, fontes.secao());
+        p.setSpacingAfter(4);
         return p;
     }
 
-    private Paragraph paragrafoRotuloValor(String rotulo, String valor) {
+    private Paragraph paragrafoRotuloValor(Fontes fontes, String rotulo, String valor) {
         Paragraph p = new Paragraph();
-        p.add(new Chunk(rotulo, fonteNormalNegrito));
-        p.add(new Chunk(valor, fonteNormal));
+        p.add(new Chunk(rotulo, fontes.normalNegrito()));
+        p.add(new Chunk(valor, fontes.normal()));
         p.setSpacingAfter(2);
         return p;
     }
 
-    private Paragraph espacador() {
-        return new Paragraph(" ");
+    private Paragraph espacador(Fontes fontes) {
+        Paragraph p = new Paragraph(" ", new Font(fontes.baseFont(), 4));
+        p.setLeading(7f);
+        return p;
     }
 
     // ---------------------------------------------------------------
     // Tabelas
     // ---------------------------------------------------------------
 
-    private void adicionarTabelaItemValor(Document document, String rotuloColunaValor,
+    private void adicionarTabelaItemValor(DocumentoPdf pdf, String rotuloColunaValor,
                                            List<String[]> itens, String rotuloTotal, BigDecimal total)
             throws DocumentException {
         List<PdfPCell[]> linhas = new ArrayList<>();
         for (String[] item : itens) {
             linhas.add(new PdfPCell[]{
-                    celulaTexto(item[0], Element.ALIGN_LEFT),
-                    celulaTexto(FormatadorRelatorio.moeda(new BigDecimal(item[1])), Element.ALIGN_RIGHT)
+                    celulaTexto(pdf.fontes(), item[0], Element.ALIGN_LEFT),
+                    celulaTexto(pdf.fontes(), FormatadorRelatorio.moeda(new BigDecimal(item[1])), Element.ALIGN_RIGHT)
             });
         }
         adicionarTabelaGenerica(
-                document,
+                pdf,
                 new String[]{"Item", rotuloColunaValor},
                 new int[]{Element.ALIGN_LEFT, Element.ALIGN_RIGHT},
                 new float[]{3f, 2f},
                 linhas,
                 new PdfPCell[]{
-                        celulaTotal(rotuloTotal, Element.ALIGN_LEFT),
-                        celulaTotal(FormatadorRelatorio.moeda(total), Element.ALIGN_RIGHT)
+                        celulaTotal(pdf.fontes(), rotuloTotal, Element.ALIGN_LEFT),
+                        celulaTotal(pdf.fontes(), FormatadorRelatorio.moeda(total), Element.ALIGN_RIGHT)
                 }
         );
     }
 
-    private void adicionarTabelaOrcamento(Document document, BigDecimal planejado, BigDecimal realizado,
+    private void adicionarTabelaOrcamento(DocumentoPdf pdf, BigDecimal planejado, BigDecimal realizado,
                                            BigDecimal saldo, BigDecimal percentual) throws DocumentException {
         List<PdfPCell[]> linhas = new ArrayList<>();
         linhas.add(new PdfPCell[]{
-                celulaTexto("Valor Planejado", Element.ALIGN_LEFT),
-                celulaTexto(FormatadorRelatorio.moeda(planejado), Element.ALIGN_RIGHT)
+                celulaTexto(pdf.fontes(), "Valor Planejado", Element.ALIGN_LEFT),
+                celulaTexto(pdf.fontes(), FormatadorRelatorio.moeda(planejado), Element.ALIGN_RIGHT)
         });
         linhas.add(new PdfPCell[]{
-                celulaTexto("Valor Realizado", Element.ALIGN_LEFT),
-                celulaTexto(FormatadorRelatorio.moeda(realizado), Element.ALIGN_RIGHT)
+                celulaTexto(pdf.fontes(), "Valor Realizado", Element.ALIGN_LEFT),
+                celulaTexto(pdf.fontes(), FormatadorRelatorio.moeda(realizado), Element.ALIGN_RIGHT)
         });
         linhas.add(new PdfPCell[]{
-                celulaTexto("Saldo Disponível", Element.ALIGN_LEFT),
-                celulaTexto(FormatadorRelatorio.moeda(saldo), Element.ALIGN_RIGHT)
+                celulaTexto(pdf.fontes(), "Saldo Disponível", Element.ALIGN_LEFT),
+                celulaTexto(pdf.fontes(), FormatadorRelatorio.moeda(saldo), Element.ALIGN_RIGHT)
         });
         adicionarTabelaGenerica(
-                document,
+                pdf,
                 new String[]{"Item", "Valor"},
                 new int[]{Element.ALIGN_LEFT, Element.ALIGN_RIGHT},
                 new float[]{3f, 2f},
                 linhas,
                 new PdfPCell[]{
-                        celulaTotal("Percentual Utilizado", Element.ALIGN_LEFT),
-                        celulaTotal(FormatadorRelatorio.percentual(percentual), Element.ALIGN_RIGHT)
+                        celulaTotal(pdf.fontes(), "Percentual Utilizado", Element.ALIGN_LEFT),
+                        celulaTotal(pdf.fontes(), FormatadorRelatorio.percentual(percentual), Element.ALIGN_RIGHT)
                 }
         );
     }
 
-    private void adicionarTabelaGenerica(Document document, String[] cabecalhos, int[] alinhamentos,
+    private void adicionarTabelaGenerica(DocumentoPdf pdf, String[] cabecalhos, int[] alinhamentos,
                                           float[] larguras, List<PdfPCell[]> linhas, PdfPCell[] linhaTotal)
             throws DocumentException {
-        document.add(tituloSecao("Dados do Relatório"));
+        Document document = pdf.document();
+        Fontes fontes = pdf.fontes();
+        document.add(tituloSecao(fontes, "Dados do Relatório"));
 
         if (linhas.isEmpty()) {
-            document.add(new Paragraph("Sem dados para os parâmetros informados.", fonteItalico));
-            document.add(espacador());
+            document.add(new Paragraph("Sem dados para os parâmetros informados.", fontes.italico()));
+            document.add(espacador(fontes));
             return;
         }
 
@@ -518,7 +559,7 @@ public class RelatorioPdfBuilder {
         tabela.setHeaderRows(1);
 
         for (int i = 0; i < cabecalhos.length; i++) {
-            tabela.addCell(celulaCabecalho(cabecalhos[i], alinhamentos[i]));
+            tabela.addCell(celulaCabecalho(fontes, cabecalhos[i], alinhamentos[i]));
         }
 
         boolean linhaPar = false;
@@ -537,11 +578,11 @@ public class RelatorioPdfBuilder {
         }
 
         document.add(tabela);
-        document.add(espacador());
+        document.add(espacador(fontes));
     }
 
-    private PdfPCell celulaCabecalho(String texto, int alinhamento) {
-        PdfPCell cell = new PdfPCell(new Phrase(texto, fonteTabelaCabecalho));
+    private PdfPCell celulaCabecalho(Fontes fontes, String texto, int alinhamento) {
+        PdfPCell cell = new PdfPCell(new Phrase(texto, fontes.tabelaCabecalho()));
         cell.setBackgroundColor(COR_DESTAQUE);
         cell.setHorizontalAlignment(alinhamento);
         cell.setPadding(6);
@@ -549,16 +590,16 @@ public class RelatorioPdfBuilder {
         return cell;
     }
 
-    private PdfPCell celulaTexto(String texto, int alinhamento) {
-        PdfPCell cell = new PdfPCell(new Phrase(texto, fonteTabelaCelula));
+    private PdfPCell celulaTexto(Fontes fontes, String texto, int alinhamento) {
+        PdfPCell cell = new PdfPCell(new Phrase(texto, fontes.tabelaCelula()));
         cell.setHorizontalAlignment(alinhamento);
         cell.setPadding(5);
         cell.setBorderColor(COR_BORDA);
         return cell;
     }
 
-    private PdfPCell celulaTotal(String texto, int alinhamento) {
-        PdfPCell cell = new PdfPCell(new Phrase(texto, fonteTabelaTotal));
+    private PdfPCell celulaTotal(Fontes fontes, String texto, int alinhamento) {
+        PdfPCell cell = new PdfPCell(new Phrase(texto, fontes.tabelaTotal()));
         cell.setHorizontalAlignment(alinhamento);
         cell.setPadding(6);
         cell.setBorderColor(COR_BORDA);
@@ -570,9 +611,11 @@ public class RelatorioPdfBuilder {
     // Gráficos
     // ---------------------------------------------------------------
 
-    private void adicionarGraficoBarrasMultiplas(Document document, PdfWriter writer, List<ItemBarra> itens,
-                                                  String notaRodape) throws DocumentException {
-        document.add(tituloSecao("Gráfico"));
+    private void adicionarGraficoBarrasMultiplas(DocumentoPdf pdf, List<ItemBarra> itens, String notaRodape)
+            throws DocumentException {
+        Document document = pdf.document();
+        Fontes fontes = pdf.fontes();
+        BaseFont baseFont = fontes.baseFont();
 
         BigDecimal maior = itens.stream()
                 .map(ItemBarra::valor)
@@ -581,8 +624,9 @@ public class RelatorioPdfBuilder {
                 .orElse(BigDecimal.ZERO);
 
         if (itens.isEmpty() || maior.compareTo(BigDecimal.ZERO) <= 0) {
-            document.add(new Paragraph(SEM_CUSTOS, fonteItalico));
-            document.add(espacador());
+            document.add(tituloSecao(fontes, "Gráfico"));
+            document.add(new Paragraph(SEM_CUSTOS, fontes.italico()));
+            document.add(espacador(fontes));
             return;
         }
 
@@ -594,7 +638,7 @@ public class RelatorioPdfBuilder {
         float larguraBarraMax = largura - margemRotulo - margemDireita;
         float alturaTotal = itens.size() * (alturaBarra + espacamento) + 10f;
 
-        PdfContentByte conteudo = writer.getDirectContent();
+        PdfContentByte conteudo = pdf.writer().getDirectContent();
         PdfTemplate template = conteudo.createTemplate(largura, alturaTotal);
 
         float y = alturaTotal - 5f;
@@ -626,26 +670,25 @@ public class RelatorioPdfBuilder {
             y -= (alturaBarra + espacamento);
         }
 
-        document.add(Image.getInstance(template));
-        if (notaRodape != null) {
-            Paragraph nota = new Paragraph(notaRodape, fonteItalico);
-            nota.setSpacingBefore(4);
-            document.add(nota);
-        }
-        document.add(espacador());
+        Image imagem = Image.getInstance(template);
+        adicionarBlocoGrafico(pdf, imagem, notaRodape);
     }
 
-    private void adicionarGraficoEmpilhado(Document document, PdfWriter writer, String rotulo1, BigDecimal valor1,
-                                            String rotulo2, BigDecimal valor2) throws DocumentException {
-        document.add(tituloSecao("Gráfico"));
+    private void adicionarGraficoEmpilhado(DocumentoPdf pdf, String rotulo1, BigDecimal valor1,
+                                            String rotulo2, BigDecimal valor2, String mensagemVazio)
+            throws DocumentException {
+        Document document = pdf.document();
+        Fontes fontes = pdf.fontes();
+        BaseFont baseFont = fontes.baseFont();
 
         BigDecimal v1 = valor1 == null ? BigDecimal.ZERO : valor1;
         BigDecimal v2 = valor2 == null ? BigDecimal.ZERO : valor2;
         BigDecimal total = v1.add(v2);
 
         if (total.compareTo(BigDecimal.ZERO) <= 0) {
-            document.add(new Paragraph(SEM_CUSTOS, fonteItalico));
-            document.add(espacador());
+            document.add(tituloSecao(fontes, "Gráfico"));
+            document.add(new Paragraph(mensagemVazio, fontes.italico()));
+            document.add(espacador(fontes));
             return;
         }
 
@@ -653,7 +696,7 @@ public class RelatorioPdfBuilder {
         float alturaBarra = 30f;
         float alturaTotal = alturaBarra + 38f;
 
-        PdfContentByte conteudo = writer.getDirectContent();
+        PdfContentByte conteudo = pdf.writer().getDirectContent();
         PdfTemplate template = conteudo.createTemplate(largura, alturaTotal);
 
         float proporcao1 = v1.floatValue() / total.floatValue();
@@ -711,22 +754,25 @@ public class RelatorioPdfBuilder {
         template.showTextAligned(PdfContentByte.ALIGN_LEFT, texto2, xLegenda2 + 16, yLegenda + 1, 0);
         template.endText();
 
-        document.add(Image.getInstance(template));
-        document.add(espacador());
+        Image imagem = Image.getInstance(template);
+        adicionarBlocoGrafico(pdf, imagem, null);
     }
 
-    private void adicionarGraficoComparativo(Document document, PdfWriter writer, String rotulo1, BigDecimal valor1,
+    private void adicionarGraficoComparativo(DocumentoPdf pdf, String rotulo1, BigDecimal valor1,
                                               String rotulo2, BigDecimal valor2, BigDecimal percentualUtilizado)
             throws DocumentException {
-        document.add(tituloSecao("Gráfico"));
+        Document document = pdf.document();
+        Fontes fontes = pdf.fontes();
+        BaseFont baseFont = fontes.baseFont();
 
         BigDecimal v1 = valor1 == null ? BigDecimal.ZERO : valor1;
         BigDecimal v2 = valor2 == null ? BigDecimal.ZERO : valor2;
         BigDecimal maior = v1.max(v2);
 
         if (maior.compareTo(BigDecimal.ZERO) <= 0) {
-            document.add(new Paragraph(SEM_CUSTOS, fonteItalico));
-            document.add(espacador());
+            document.add(tituloSecao(fontes, "Gráfico"));
+            document.add(new Paragraph(SEM_VALORES, fontes.italico()));
+            document.add(espacador(fontes));
             return;
         }
 
@@ -738,13 +784,13 @@ public class RelatorioPdfBuilder {
         float larguraBarraMax = largura - margemRotulo - margemDireita;
         float alturaTotal = 2 * alturaBarra + espacamento + 34f;
 
-        PdfContentByte conteudo = writer.getDirectContent();
+        PdfContentByte conteudo = pdf.writer().getDirectContent();
         PdfTemplate template = conteudo.createTemplate(largura, alturaTotal);
 
         float y = alturaTotal - 8f;
-        y = desenharLinhaBarraComparativa(template, rotulo1, v1, maior, margemRotulo, larguraBarraMax, y, alturaBarra, COR_DESTAQUE);
+        y = desenharLinhaBarraComparativa(baseFont, template, rotulo1, v1, maior, margemRotulo, larguraBarraMax, y, alturaBarra, COR_DESTAQUE);
         y -= espacamento;
-        y = desenharLinhaBarraComparativa(template, rotulo2, v2, maior, margemRotulo, larguraBarraMax, y, alturaBarra, COR_SECUNDARIA);
+        y = desenharLinhaBarraComparativa(baseFont, template, rotulo2, v2, maior, margemRotulo, larguraBarraMax, y, alturaBarra, COR_SECUNDARIA);
 
         template.beginText();
         template.setFontAndSize(baseFont, 9);
@@ -754,11 +800,11 @@ public class RelatorioPdfBuilder {
                 margemRotulo, y - 16, 0);
         template.endText();
 
-        document.add(Image.getInstance(template));
-        document.add(espacador());
+        Image imagem = Image.getInstance(template);
+        adicionarBlocoGrafico(pdf, imagem, null);
     }
 
-    private float desenharLinhaBarraComparativa(PdfTemplate template, String rotulo, BigDecimal valor, BigDecimal maior,
+    private float desenharLinhaBarraComparativa(BaseFont baseFont, PdfTemplate template, String rotulo, BigDecimal valor, BigDecimal maior,
                                                  float margemRotulo, float larguraBarraMax, float y,
                                                  float alturaBarra, Color cor) {
         float proporcao = valor.floatValue() / maior.floatValue();
@@ -785,6 +831,44 @@ public class RelatorioPdfBuilder {
         template.endText();
 
         return y - alturaBarra;
+    }
+
+    /**
+     * Agrupa o título "Gráfico" e a imagem em um único bloco (keepTogether) para que nunca
+     * sejam quebrados entre páginas.
+     */
+    private void adicionarBlocoGrafico(DocumentoPdf pdf, Image imagem, String notaRodape) throws DocumentException {
+        Document document = pdf.document();
+        Fontes fontes = pdf.fontes();
+
+        PdfPTable bloco = new PdfPTable(1);
+        bloco.setWidthPercentage(100);
+        bloco.setKeepTogether(true);
+
+        PdfPCell celulaTitulo = new PdfPCell();
+        celulaTitulo.setBorder(0);
+        celulaTitulo.setPadding(0);
+        celulaTitulo.setPaddingBottom(4);
+        celulaTitulo.addElement(new Paragraph("Gráfico", fontes.secao()));
+        bloco.addCell(celulaTitulo);
+
+        PdfPCell celulaImagem = new PdfPCell();
+        celulaImagem.setBorder(0);
+        celulaImagem.setPadding(0);
+        celulaImagem.addElement(imagem);
+        bloco.addCell(celulaImagem);
+
+        if (notaRodape != null) {
+            PdfPCell celulaNota = new PdfPCell();
+            celulaNota.setBorder(0);
+            celulaNota.setPadding(0);
+            celulaNota.setPaddingTop(4);
+            celulaNota.addElement(new Paragraph(notaRodape, fontes.italico()));
+            bloco.addCell(celulaNota);
+        }
+
+        document.add(bloco);
+        document.add(espacador(fontes));
     }
 
     private String truncar(String texto, int maxCaracteres) {
