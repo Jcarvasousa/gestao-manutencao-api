@@ -3,7 +3,6 @@ package br.com.joaovitor.gestaomanutencao.controller;
 import br.com.joaovitor.gestaomanutencao.dto.RelatorioCustoMensalDTO;
 import br.com.joaovitor.gestaomanutencao.dto.RelatorioCustoMaquinaDTO;
 import br.com.joaovitor.gestaomanutencao.dto.RelatorioCustoMaquinasResponseDTO;
-import br.com.joaovitor.gestaomanutencao.dto.RelatorioCustoSetorDTO;
 import br.com.joaovitor.gestaomanutencao.dto.RelatorioCustoSetoresResponseDTO;
 import br.com.joaovitor.gestaomanutencao.dto.RelatorioGastoRealizadoDTO;
 import br.com.joaovitor.gestaomanutencao.dto.RelatorioKpisDTO;
@@ -12,6 +11,7 @@ import br.com.joaovitor.gestaomanutencao.dto.RelatorioOrcamentoMensalDTO;
 import br.com.joaovitor.gestaomanutencao.exception.RecursoNaoEncontradoException;
 import br.com.joaovitor.gestaomanutencao.exception.RelatorioParametrosInvalidosException;
 import br.com.joaovitor.gestaomanutencao.model.Maquina;
+import br.com.joaovitor.gestaomanutencao.pdf.RelatorioPdfBuilder;
 import br.com.joaovitor.gestaomanutencao.repository.MaquinaRepository;
 import br.com.joaovitor.gestaomanutencao.repository.ManutencaoRepository;
 import br.com.joaovitor.gestaomanutencao.repository.MovimentacaoEstoqueRepository;
@@ -20,10 +20,7 @@ import br.com.joaovitor.gestaomanutencao.repository.ServicoTerceiroRepository;
 import br.com.joaovitor.gestaomanutencao.repository.SolicitacaoCompraRepository;
 import br.com.joaovitor.gestaomanutencao.service.CustoManutencaoService;
 import br.com.joaovitor.gestaomanutencao.service.CustoSetorService;
-import org.openpdf.text.Document;
 import org.openpdf.text.DocumentException;
-import org.openpdf.text.Paragraph;
-import org.openpdf.text.pdf.PdfWriter;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -33,7 +30,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
@@ -51,6 +47,7 @@ public class RelatorioController {
     private final CustoManutencaoService custoManutencaoService;
     private final ManutencaoRepository manutencaoRepository;
     private final CustoSetorService custoSetorService;
+    private final RelatorioPdfBuilder relatorioPdfBuilder;
 
     public RelatorioController(
             MovimentacaoEstoqueRepository movimentacaoEstoqueRepository,
@@ -60,7 +57,8 @@ public class RelatorioController {
             OrcamentoMensalRepository orcamentoMensalRepository,
             CustoManutencaoService custoManutencaoService,
             ManutencaoRepository manutencaoRepository,
-            CustoSetorService custoSetorService
+            CustoSetorService custoSetorService,
+            RelatorioPdfBuilder relatorioPdfBuilder
     ) {
         this.movimentacaoEstoqueRepository = movimentacaoEstoqueRepository;
         this.servicoTerceiroRepository = servicoTerceiroRepository;
@@ -70,6 +68,7 @@ public class RelatorioController {
         this.custoManutencaoService = custoManutencaoService;
         this.manutencaoRepository = manutencaoRepository;
         this.custoSetorService = custoSetorService;
+        this.relatorioPdfBuilder = relatorioPdfBuilder;
     }
 
     @GetMapping("/kpis")
@@ -126,17 +125,10 @@ public class RelatorioController {
 
         BigDecimal custoTotal = custoPecas.add(custoMaoDeObra);
 
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        Document document = new Document();
-        PdfWriter.getInstance(document, outputStream);
-        document.open();
-        document.add(new Paragraph("Relatório de Custo Mensal"));
-        document.add(new Paragraph("Mês: " + mes));
-        document.add(new Paragraph("Ano: " + ano));
-        document.add(new Paragraph("Custo de Peças: " + custoPecas));
-        document.add(new Paragraph("Custo de Mão de Obra: " + custoMaoDeObra));
-        document.add(new Paragraph("Custo Total: " + custoTotal));
-        document.close();
+        RelatorioCustoMensalDTO relatorio = new RelatorioCustoMensalDTO(
+                mes, ano, custoPecas, custoMaoDeObra, custoTotal
+        );
+        byte[] pdf = relatorioPdfBuilder.custoMensal(relatorio);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
@@ -145,7 +137,7 @@ public class RelatorioController {
 
         return ResponseEntity.ok()
                 .headers(headers)
-                .body(outputStream.toByteArray());
+                .body(pdf);
     }
 
     @GetMapping("/orcamento-mensal")
@@ -200,18 +192,10 @@ public class RelatorioController {
                 .divide(valorPlanejado, 2, RoundingMode.HALF_UP)
                 .multiply(BigDecimal.valueOf(100));
 
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        Document document = new Document();
-        PdfWriter.getInstance(document, outputStream);
-        document.open();
-        document.add(new Paragraph("Relatório de Orçamento Mensal"));
-        document.add(new Paragraph("Mês: " + mes));
-        document.add(new Paragraph("Ano: " + ano));
-        document.add(new Paragraph("Valor Planejado: " + valorPlanejado));
-        document.add(new Paragraph("Valor Realizado: " + valorRealizado));
-        document.add(new Paragraph("Saldo Disponível: " + saldoDisponivel));
-        document.add(new Paragraph("Percentual Utilizado: " + percentualUtilizado));
-        document.close();
+        RelatorioOrcamentoMensalDTO relatorio = new RelatorioOrcamentoMensalDTO(
+                mes, ano, valorPlanejado, valorRealizado, saldoDisponivel, percentualUtilizado
+        );
+        byte[] pdf = relatorioPdfBuilder.orcamentoMensal(relatorio);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
@@ -220,7 +204,7 @@ public class RelatorioController {
 
         return ResponseEntity.ok()
                 .headers(headers)
-                .body(outputStream.toByteArray());
+                .body(pdf);
     }
 
     @GetMapping("/orcamento-anual")
@@ -272,17 +256,10 @@ public class RelatorioController {
                 .divide(valorPlanejadoTotal, 2, RoundingMode.HALF_UP)
                 .multiply(BigDecimal.valueOf(100));
 
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        Document document = new Document();
-        PdfWriter.getInstance(document, outputStream);
-        document.open();
-        document.add(new Paragraph("Relatório de Orçamento Anual"));
-        document.add(new Paragraph("Ano: " + ano));
-        document.add(new Paragraph("Valor Planejado: " + valorPlanejadoTotal));
-        document.add(new Paragraph("Valor Realizado: " + valorRealizadoTotal));
-        document.add(new Paragraph("Saldo Disponível: " + saldoDisponivel));
-        document.add(new Paragraph("Percentual Utilizado: " + percentualUtilizado));
-        document.close();
+        RelatorioOrcamentoAnualDTO relatorio = new RelatorioOrcamentoAnualDTO(
+                ano, valorPlanejadoTotal, valorRealizadoTotal, saldoDisponivel, percentualUtilizado
+        );
+        byte[] pdf = relatorioPdfBuilder.orcamentoAnual(relatorio);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
@@ -291,7 +268,7 @@ public class RelatorioController {
 
         return ResponseEntity.ok()
                 .headers(headers)
-                .body(outputStream.toByteArray());
+                .body(pdf);
     }
 
     @GetMapping("/gasto-realizado")
@@ -327,17 +304,10 @@ public class RelatorioController {
 
         BigDecimal valorGastoTotal = valorGastoPecas.add(valorGastoServicoTerceiro);
 
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        Document document = new Document();
-        PdfWriter.getInstance(document, outputStream);
-        document.open();
-        document.add(new Paragraph("Relatório de Gasto Realizado"));
-        document.add(new Paragraph("Mês: " + mes));
-        document.add(new Paragraph("Ano: " + ano));
-        document.add(new Paragraph("Valor Gasto em Peças: " + valorGastoPecas));
-        document.add(new Paragraph("Valor Gasto em Serviço de Terceiro: " + valorGastoServicoTerceiro));
-        document.add(new Paragraph("Valor Gasto Total: " + valorGastoTotal));
-        document.close();
+        RelatorioGastoRealizadoDTO relatorio = new RelatorioGastoRealizadoDTO(
+                mes, ano, valorGastoPecas, valorGastoServicoTerceiro, valorGastoTotal
+        );
+        byte[] pdf = relatorioPdfBuilder.gastoRealizado(relatorio);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
@@ -346,7 +316,7 @@ public class RelatorioController {
 
         return ResponseEntity.ok()
                 .headers(headers)
-                .body(outputStream.toByteArray());
+                .body(pdf);
     }
 
     @GetMapping("/custo-maquina/mensal")
@@ -400,18 +370,11 @@ public class RelatorioController {
                 .calcularCustoMaoDeObraPorMaquinaMesEAno(maquinaId, mes, ano);
         if (custoMaoDeObra == null) custoMaoDeObra = BigDecimal.ZERO;
 
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        Document document = new Document();
-        PdfWriter.getInstance(document, outputStream);
-        document.open();
-        document.add(new Paragraph("Relatório de Custo por Máquina - Mensal"));
-        document.add(new Paragraph("Código da Máquina: " + maquina.getCodigo()));
-        document.add(new Paragraph("Mês: " + mes));
-        document.add(new Paragraph("Ano: " + ano));
-        document.add(new Paragraph("Custo de Peças: " + custoPecas));
-        document.add(new Paragraph("Custo de Mão de Obra: " + custoMaoDeObra));
-        document.add(new Paragraph("Custo Total: " + custoPecas.add(custoMaoDeObra)));
-        document.close();
+        RelatorioCustoMaquinaDTO relatorio = new RelatorioCustoMaquinaDTO(
+                maquinaId, maquina.getCodigo(), mes, ano,
+                custoPecas, custoMaoDeObra, custoPecas.add(custoMaoDeObra)
+        );
+        byte[] pdf = relatorioPdfBuilder.custoMaquinaMensal(relatorio);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
@@ -420,7 +383,7 @@ public class RelatorioController {
 
         return ResponseEntity.ok()
                     .headers(headers)
-                    .body(outputStream.toByteArray());
+                    .body(pdf);
     }
 
     @GetMapping("/custo-maquina/anual")
@@ -472,17 +435,11 @@ public class RelatorioController {
                 .calcularCustoMaoDeObraPorMaquinaEAno(maquinaId, ano);
         if (custoMaoDeObra == null) custoMaoDeObra = BigDecimal.ZERO;
 
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        Document document = new Document();
-        PdfWriter.getInstance(document, outputStream);
-        document.open();
-        document.add(new Paragraph("Relatório de Custo por Máquina - Anual"));
-        document.add(new Paragraph("Código da Máquina: " + maquina.getCodigo()));
-        document.add(new Paragraph("Ano: " + ano));
-        document.add(new Paragraph("Custo de Peças: " + custoPecas));
-        document.add(new Paragraph("Custo de Mão de Obra: " + custoMaoDeObra));
-        document.add(new Paragraph("Custo Total: " + custoPecas.add(custoMaoDeObra)));
-        document.close();
+        RelatorioCustoMaquinaDTO relatorio = new RelatorioCustoMaquinaDTO(
+                maquinaId, maquina.getCodigo(), null, ano,
+                custoPecas, custoMaoDeObra, custoPecas.add(custoMaoDeObra)
+        );
+        byte[] pdf = relatorioPdfBuilder.custoMaquinaAnual(relatorio);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
@@ -491,7 +448,7 @@ public class RelatorioController {
 
         return ResponseEntity.ok()
                     .headers(headers)
-                    .body(outputStream.toByteArray());
+                    .body(pdf);
     }
 
     @GetMapping("/custo-maquina/total")
@@ -541,16 +498,11 @@ public class RelatorioController {
                 .calcularCustoMaoDeObraPorMaquinaTotal(maquinaId);
         if (custoMaoDeObra == null) custoMaoDeObra = BigDecimal.ZERO;
 
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        Document document = new Document();
-        PdfWriter.getInstance(document, outputStream);
-        document.open();
-        document.add(new Paragraph("Relatório de Custo por Máquina - Total"));
-        document.add(new Paragraph("Código da Máquina: " + maquina.getCodigo()));
-        document.add(new Paragraph("Custo de Peças: " + custoPecas));
-        document.add(new Paragraph("Custo de Mão de Obra: " + custoMaoDeObra));
-        document.add(new Paragraph("Custo Total: " + custoPecas.add(custoMaoDeObra)));
-        document.close();
+        RelatorioCustoMaquinaDTO relatorio = new RelatorioCustoMaquinaDTO(
+                maquinaId, maquina.getCodigo(), null, null,
+                custoPecas, custoMaoDeObra, custoPecas.add(custoMaoDeObra)
+        );
+        byte[] pdf = relatorioPdfBuilder.custoMaquinaTotal(relatorio);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
@@ -559,7 +511,7 @@ public class RelatorioController {
 
         return ResponseEntity.ok()
                     .headers(headers)
-                    .body(outputStream.toByteArray());
+                    .body(pdf);
     }
 
     @GetMapping("/custo-maquinas")
@@ -591,23 +543,8 @@ public class RelatorioController {
                 .map(RelatorioCustoMaquinaDTO::custoTotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        Document document = new Document();
-        PdfWriter.getInstance(document, outputStream);
-        document.open();
-        document.add(new Paragraph("Relatório de Custo por Máquinas"));
-        for (RelatorioCustoMaquinaDTO maquina : maquinas) {
-            document.add(new Paragraph(" "));
-            document.add(new Paragraph("Código da Máquina: " + maquina.maquinaCodigo()));
-            if (maquina.mes() != null) document.add(new Paragraph("Mês: " + maquina.mes()));
-            if (maquina.ano() != null) document.add(new Paragraph("Ano: " + maquina.ano()));
-            document.add(new Paragraph("Custo de Peças: " + maquina.custoPecas()));
-            document.add(new Paragraph("Custo de Mão de Obra: " + maquina.custoMaoDeObra()));
-            document.add(new Paragraph("Custo Total: " + maquina.custoTotal()));
-        }
-        document.add(new Paragraph(" "));
-        document.add(new Paragraph("Total Geral: " + totalGeral));
-        document.close();
+        RelatorioCustoMaquinasResponseDTO relatorio = new RelatorioCustoMaquinasResponseDTO(maquinas, totalGeral);
+        byte[] pdf = relatorioPdfBuilder.custoMaquinas(relatorio, mes, ano);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
@@ -616,7 +553,7 @@ public class RelatorioController {
 
         return ResponseEntity.ok()
                 .headers(headers)
-                .body(outputStream.toByteArray());
+                .body(pdf);
     }
 
     @GetMapping("/custo-setores")
@@ -639,26 +576,7 @@ public class RelatorioController {
         RelatorioCustoSetoresResponseDTO relatorio = custoSetorService
                 .calcularRelatorioCustoSetores(setorIds, mes, ano);
 
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        Document document = new Document();
-        PdfWriter.getInstance(document, outputStream);
-        document.open();
-        document.add(new Paragraph("Relatório de Custo por Setores"));
-        if (relatorio.mes() != null) document.add(new Paragraph("Mês: " + relatorio.mes()));
-        if (relatorio.ano() != null) document.add(new Paragraph("Ano: " + relatorio.ano()));
-        for (RelatorioCustoSetorDTO setor : relatorio.setores()) {
-            document.add(new Paragraph(" "));
-            document.add(new Paragraph("Setor: " + setor.setorNome()));
-            document.add(new Paragraph("Ativo: " + setor.ativo()));
-            document.add(new Paragraph("Quantidade de Máquinas: " + setor.quantidadeMaquinas()));
-            document.add(new Paragraph("Custo de Peças: " + setor.custoPecas()));
-            document.add(new Paragraph("Custo de Mão de Obra: " + setor.custoMaoDeObra()));
-            document.add(new Paragraph("Custo Total: " + setor.custoTotal()));
-            document.add(new Paragraph("Percentual do Total: " + setor.percentualDoTotal() + "%"));
-        }
-        document.add(new Paragraph(" "));
-        document.add(new Paragraph("Total Geral: " + relatorio.totalGeral()));
-        document.close();
+        byte[] pdf = relatorioPdfBuilder.custoSetores(relatorio, setorIds);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
@@ -667,7 +585,7 @@ public class RelatorioController {
 
         return ResponseEntity.ok()
                 .headers(headers)
-                .body(outputStream.toByteArray());
+                .body(pdf);
     }
 
     private BigDecimal calcularValorRealizadoMensal(Integer mes, Integer ano) {
