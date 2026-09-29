@@ -3,6 +3,8 @@ package br.com.joaovitor.gestaomanutencao.controller;
 import br.com.joaovitor.gestaomanutencao.dto.RelatorioCustoMensalDTO;
 import br.com.joaovitor.gestaomanutencao.dto.RelatorioCustoMaquinaDTO;
 import br.com.joaovitor.gestaomanutencao.dto.RelatorioCustoMaquinasResponseDTO;
+import br.com.joaovitor.gestaomanutencao.dto.RelatorioCustoSetorDTO;
+import br.com.joaovitor.gestaomanutencao.dto.RelatorioCustoSetoresResponseDTO;
 import br.com.joaovitor.gestaomanutencao.dto.RelatorioGastoRealizadoDTO;
 import br.com.joaovitor.gestaomanutencao.dto.RelatorioKpisDTO;
 import br.com.joaovitor.gestaomanutencao.dto.RelatorioOrcamentoAnualDTO;
@@ -17,6 +19,7 @@ import br.com.joaovitor.gestaomanutencao.repository.OrcamentoMensalRepository;
 import br.com.joaovitor.gestaomanutencao.repository.ServicoTerceiroRepository;
 import br.com.joaovitor.gestaomanutencao.repository.SolicitacaoCompraRepository;
 import br.com.joaovitor.gestaomanutencao.service.CustoManutencaoService;
+import br.com.joaovitor.gestaomanutencao.service.CustoSetorService;
 import org.openpdf.text.Document;
 import org.openpdf.text.DocumentException;
 import org.openpdf.text.Paragraph;
@@ -47,6 +50,7 @@ public class RelatorioController {
     private final OrcamentoMensalRepository orcamentoMensalRepository;
     private final CustoManutencaoService custoManutencaoService;
     private final ManutencaoRepository manutencaoRepository;
+    private final CustoSetorService custoSetorService;
 
     public RelatorioController(
             MovimentacaoEstoqueRepository movimentacaoEstoqueRepository,
@@ -55,7 +59,8 @@ public class RelatorioController {
             SolicitacaoCompraRepository solicitacaoCompraRepository,
             OrcamentoMensalRepository orcamentoMensalRepository,
             CustoManutencaoService custoManutencaoService,
-            ManutencaoRepository manutencaoRepository
+            ManutencaoRepository manutencaoRepository,
+            CustoSetorService custoSetorService
     ) {
         this.movimentacaoEstoqueRepository = movimentacaoEstoqueRepository;
         this.servicoTerceiroRepository = servicoTerceiroRepository;
@@ -64,6 +69,7 @@ public class RelatorioController {
         this.orcamentoMensalRepository = orcamentoMensalRepository;
         this.custoManutencaoService = custoManutencaoService;
         this.manutencaoRepository = manutencaoRepository;
+        this.custoSetorService = custoSetorService;
     }
 
     @GetMapping("/kpis")
@@ -607,6 +613,57 @@ public class RelatorioController {
         headers.setContentType(MediaType.APPLICATION_PDF);
         headers.set(HttpHeaders.CONTENT_DISPOSITION,
                 "attachment; filename=relatorio-custo-maquinas.pdf");
+
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(outputStream.toByteArray());
+    }
+
+    @GetMapping("/custo-setores")
+    @Transactional(readOnly = true)
+    public ResponseEntity<RelatorioCustoSetoresResponseDTO> custoSetores(
+            @RequestParam(required = false) List<Long> setorIds,
+            @RequestParam(required = false) Integer mes,
+            @RequestParam(required = false) Integer ano
+    ) {
+        return ResponseEntity.ok(custoSetorService.calcularRelatorioCustoSetores(setorIds, mes, ano));
+    }
+
+    @GetMapping("/custo-setores/pdf")
+    @Transactional(readOnly = true)
+    public ResponseEntity<byte[]> custoSetoresPdf(
+            @RequestParam(required = false) List<Long> setorIds,
+            @RequestParam(required = false) Integer mes,
+            @RequestParam(required = false) Integer ano
+    ) throws DocumentException {
+        RelatorioCustoSetoresResponseDTO relatorio = custoSetorService
+                .calcularRelatorioCustoSetores(setorIds, mes, ano);
+
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        Document document = new Document();
+        PdfWriter.getInstance(document, outputStream);
+        document.open();
+        document.add(new Paragraph("Relatório de Custo por Setores"));
+        if (relatorio.mes() != null) document.add(new Paragraph("Mês: " + relatorio.mes()));
+        if (relatorio.ano() != null) document.add(new Paragraph("Ano: " + relatorio.ano()));
+        for (RelatorioCustoSetorDTO setor : relatorio.setores()) {
+            document.add(new Paragraph(" "));
+            document.add(new Paragraph("Setor: " + setor.setorNome()));
+            document.add(new Paragraph("Ativo: " + setor.ativo()));
+            document.add(new Paragraph("Quantidade de Máquinas: " + setor.quantidadeMaquinas()));
+            document.add(new Paragraph("Custo de Peças: " + setor.custoPecas()));
+            document.add(new Paragraph("Custo de Mão de Obra: " + setor.custoMaoDeObra()));
+            document.add(new Paragraph("Custo Total: " + setor.custoTotal()));
+            document.add(new Paragraph("Percentual do Total: " + setor.percentualDoTotal() + "%"));
+        }
+        document.add(new Paragraph(" "));
+        document.add(new Paragraph("Total Geral: " + relatorio.totalGeral()));
+        document.close();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.set(HttpHeaders.CONTENT_DISPOSITION,
+                "attachment; filename=relatorio-custo-setores.pdf");
 
         return ResponseEntity.ok()
                 .headers(headers)
