@@ -20,6 +20,7 @@ import br.com.joaovitor.gestaomanutencao.repository.ServicoTerceiroRepository;
 import br.com.joaovitor.gestaomanutencao.repository.SolicitacaoCompraRepository;
 import br.com.joaovitor.gestaomanutencao.service.CustoManutencaoService;
 import br.com.joaovitor.gestaomanutencao.service.CustoSetorService;
+import br.com.joaovitor.gestaomanutencao.util.PercentualCalculator;
 import org.openpdf.text.DocumentException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -155,11 +156,7 @@ public class RelatorioController {
         BigDecimal valorRealizado = calcularValorRealizadoMensal(mes, ano);
 
         BigDecimal saldoDisponivel = valorPlanejado.subtract(valorRealizado);
-        BigDecimal percentualUtilizado = valorPlanejado.compareTo(BigDecimal.ZERO) == 0
-                ? BigDecimal.ZERO
-                : valorRealizado
-                .divide(valorPlanejado, 2, RoundingMode.HALF_UP)
-                .multiply(BigDecimal.valueOf(100));
+        BigDecimal percentualUtilizado = PercentualCalculator.calcular(valorRealizado, valorPlanejado);
 
         return ResponseEntity.ok(new RelatorioOrcamentoMensalDTO(
                 mes,
@@ -186,11 +183,7 @@ public class RelatorioController {
         BigDecimal valorRealizado = calcularValorRealizadoMensal(mes, ano);
 
         BigDecimal saldoDisponivel = valorPlanejado.subtract(valorRealizado);
-        BigDecimal percentualUtilizado = valorPlanejado.compareTo(BigDecimal.ZERO) == 0
-                ? BigDecimal.ZERO
-                : valorRealizado
-                .divide(valorPlanejado, 2, RoundingMode.HALF_UP)
-                .multiply(BigDecimal.valueOf(100));
+        BigDecimal percentualUtilizado = PercentualCalculator.calcular(valorRealizado, valorPlanejado);
 
         RelatorioOrcamentoMensalDTO relatorio = new RelatorioOrcamentoMensalDTO(
                 mes, ano, valorPlanejado, valorRealizado, saldoDisponivel, percentualUtilizado
@@ -221,11 +214,7 @@ public class RelatorioController {
         BigDecimal valorRealizadoTotal = calcularValorRealizadoAnual(ano);
 
         BigDecimal saldoDisponivel = valorPlanejadoTotal.subtract(valorRealizadoTotal);
-        BigDecimal percentualUtilizado = valorPlanejadoTotal.compareTo(BigDecimal.ZERO) == 0
-                ? BigDecimal.ZERO
-                : valorRealizadoTotal
-                .divide(valorPlanejadoTotal, 2, RoundingMode.HALF_UP)
-                .multiply(BigDecimal.valueOf(100));
+        BigDecimal percentualUtilizado = PercentualCalculator.calcular(valorRealizadoTotal, valorPlanejadoTotal);
 
         return ResponseEntity.ok(new RelatorioOrcamentoAnualDTO(
                 ano,
@@ -250,11 +239,7 @@ public class RelatorioController {
         BigDecimal valorRealizadoTotal = calcularValorRealizadoAnual(ano);
 
         BigDecimal saldoDisponivel = valorPlanejadoTotal.subtract(valorRealizadoTotal);
-        BigDecimal percentualUtilizado = valorPlanejadoTotal.compareTo(BigDecimal.ZERO) == 0
-                ? BigDecimal.ZERO
-                : valorRealizadoTotal
-                .divide(valorPlanejadoTotal, 2, RoundingMode.HALF_UP)
-                .multiply(BigDecimal.valueOf(100));
+        BigDecimal percentualUtilizado = PercentualCalculator.calcular(valorRealizadoTotal, valorPlanejadoTotal);
 
         RelatorioOrcamentoAnualDTO relatorio = new RelatorioOrcamentoAnualDTO(
                 ano, valorPlanejadoTotal, valorRealizadoTotal, saldoDisponivel, percentualUtilizado
