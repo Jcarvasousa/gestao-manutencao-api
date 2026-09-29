@@ -31,7 +31,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  */
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@TestPropertySource(properties = "app.jwt.secret=chave-secreta-apenas-para-testes-automatizados-nao-use-em-producao")
+@TestPropertySource(properties = {
+        "app.jwt.secret=chave-secreta-apenas-para-testes-automatizados-nao-use-em-producao",
+        "spring.jpa.hibernate.ddl-auto=update"
+})
 class MovimentacaoEstoqueRepositoryCustoPecasTest {
 
     @Autowired
