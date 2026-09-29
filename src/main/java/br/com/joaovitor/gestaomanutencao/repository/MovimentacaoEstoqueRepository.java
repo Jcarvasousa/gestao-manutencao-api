@@ -55,11 +55,18 @@ public interface MovimentacaoEstoqueRepository extends JpaRepository<Movimentaca
     List<MovimentacaoEstoque> buscarSaidasEDevolucoesPorManutencao(@Param("manutencaoId") Long manutencaoId);
 
     @Query("""
-            SELECT COALESCE(SUM(m.custoUnitarioMomento * m.quantidade), 0)
+            SELECT COALESCE(SUM(
+                CASE WHEN m.tipo = br.com.joaovitor.gestaomanutencao.model.TipoMovimentacao.SAIDA THEN 1 ELSE -1 END
+                * m.custoUnitarioMomento * m.quantidade
+            ), 0)
             FROM MovimentacaoEstoque m
-            WHERE m.tipo = br.com.joaovitor.gestaomanutencao.model.TipoMovimentacao.SAIDA
-              AND MONTH(m.dataHora) = :mes
-              AND YEAR(m.dataHora) = :ano
+            WHERE m.tipo IN (
+                br.com.joaovitor.gestaomanutencao.model.TipoMovimentacao.SAIDA,
+                br.com.joaovitor.gestaomanutencao.model.TipoMovimentacao.DEVOLUCAO
+              )
+              AND m.manutencao.status = br.com.joaovitor.gestaomanutencao.model.StatusManutencao.CONCLUIDA
+              AND MONTH(m.manutencao.dataConclusao) = :mes
+              AND YEAR(m.manutencao.dataConclusao) = :ano
             """)
     BigDecimal calcularCustoPecasPorMesEAno(
             @Param("mes") Integer mes,
@@ -67,12 +74,19 @@ public interface MovimentacaoEstoqueRepository extends JpaRepository<Movimentaca
     );
 
     @Query("""
-            SELECT COALESCE(SUM(m.custoUnitarioMomento * m.quantidade), 0)
+            SELECT COALESCE(SUM(
+                CASE WHEN m.tipo = br.com.joaovitor.gestaomanutencao.model.TipoMovimentacao.SAIDA THEN 1 ELSE -1 END
+                * m.custoUnitarioMomento * m.quantidade
+            ), 0)
             FROM MovimentacaoEstoque m
-            WHERE m.tipo = br.com.joaovitor.gestaomanutencao.model.TipoMovimentacao.SAIDA
+            WHERE m.tipo IN (
+                br.com.joaovitor.gestaomanutencao.model.TipoMovimentacao.SAIDA,
+                br.com.joaovitor.gestaomanutencao.model.TipoMovimentacao.DEVOLUCAO
+              )
+              AND m.manutencao.status = br.com.joaovitor.gestaomanutencao.model.StatusManutencao.CONCLUIDA
               AND m.manutencao.maquina.id = :maquinaId
-              AND MONTH(m.dataHora) = :mes
-              AND YEAR(m.dataHora) = :ano
+              AND MONTH(m.manutencao.dataConclusao) = :mes
+              AND YEAR(m.manutencao.dataConclusao) = :ano
             """)
     BigDecimal calcularCustoPecasPorMaquinaMesEAno(
             @Param("maquinaId") Long maquinaId,
@@ -81,11 +95,18 @@ public interface MovimentacaoEstoqueRepository extends JpaRepository<Movimentaca
     );
 
     @Query("""
-            SELECT COALESCE(SUM(m.custoUnitarioMomento * m.quantidade), 0)
+            SELECT COALESCE(SUM(
+                CASE WHEN m.tipo = br.com.joaovitor.gestaomanutencao.model.TipoMovimentacao.SAIDA THEN 1 ELSE -1 END
+                * m.custoUnitarioMomento * m.quantidade
+            ), 0)
             FROM MovimentacaoEstoque m
-            WHERE m.tipo = br.com.joaovitor.gestaomanutencao.model.TipoMovimentacao.SAIDA
+            WHERE m.tipo IN (
+                br.com.joaovitor.gestaomanutencao.model.TipoMovimentacao.SAIDA,
+                br.com.joaovitor.gestaomanutencao.model.TipoMovimentacao.DEVOLUCAO
+              )
+              AND m.manutencao.status = br.com.joaovitor.gestaomanutencao.model.StatusManutencao.CONCLUIDA
               AND m.manutencao.maquina.id = :maquinaId
-              AND YEAR(m.dataHora) = :ano
+              AND YEAR(m.manutencao.dataConclusao) = :ano
             """)
     BigDecimal calcularCustoPecasPorMaquinaEAno(
             @Param("maquinaId") Long maquinaId,
@@ -93,9 +114,16 @@ public interface MovimentacaoEstoqueRepository extends JpaRepository<Movimentaca
     );
 
     @Query("""
-            SELECT COALESCE(SUM(m.custoUnitarioMomento * m.quantidade), 0)
+            SELECT COALESCE(SUM(
+                CASE WHEN m.tipo = br.com.joaovitor.gestaomanutencao.model.TipoMovimentacao.SAIDA THEN 1 ELSE -1 END
+                * m.custoUnitarioMomento * m.quantidade
+            ), 0)
             FROM MovimentacaoEstoque m
-            WHERE m.tipo = br.com.joaovitor.gestaomanutencao.model.TipoMovimentacao.SAIDA
+            WHERE m.tipo IN (
+                br.com.joaovitor.gestaomanutencao.model.TipoMovimentacao.SAIDA,
+                br.com.joaovitor.gestaomanutencao.model.TipoMovimentacao.DEVOLUCAO
+              )
+              AND m.manutencao.status = br.com.joaovitor.gestaomanutencao.model.StatusManutencao.CONCLUIDA
               AND m.manutencao.maquina.id = :maquinaId
             """)
     BigDecimal calcularCustoPecasPorMaquinaTotal(@Param("maquinaId") Long maquinaId);
